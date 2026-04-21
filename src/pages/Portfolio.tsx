@@ -149,7 +149,7 @@ const Portfolio = () => {
               <h2 className="font-display font-bold text-xl mb-5 flex items-center gap-2"><span className="text-primary">⚡</span> Core Skills</h2>
               <div className="space-y-4">
                 {(() => {
-                  const earnedSkills = skills.filter((s: any) => s.level > 0);
+                  const earnedSkills = Array.isArray(skills) ? skills.filter((s: any) => s.level > 0) : [];
                   if (earnedSkills.length > 0) {
                     return earnedSkills.map((skill: any, i: number) => (
                       <div key={i}>
@@ -187,7 +187,7 @@ const Portfolio = () => {
                 <h2 className="font-display font-bold text-xl mb-5 flex items-center gap-2"><span className="text-primary">🚀</span> Featured Projects</h2>
                 {customProjects.length > 0 ? (
                   <div className="space-y-4">
-                    {customProjects.map((p: any, i: number) => (
+                    {(Array.isArray(customProjects) ? customProjects : []).map((p: any, i: number) => (
                       <motion.div key={i} whileHover={{ y: -2 }} className="glass p-5 rounded-xl border border-border/50 hover:border-primary/30 transition-all group">
                         <div className="flex justify-between items-start mb-2">
                           <h3 className="font-bold text-lg group-hover:text-primary transition-colors">{p.title}</h3>
@@ -206,7 +206,7 @@ const Portfolio = () => {
                         </div>
                         <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{p.description}</p>
                         <div className="flex flex-wrap gap-2 mt-2">
-                          {(p.tech || []).map((t: string) => (
+                          {(Array.isArray(p.tech) ? p.tech : []).map((t: string) => (
                             <span key={t} className="text-[10px] uppercase tracking-wider font-semibold px-2 py-1 rounded-full bg-primary/10 text-primary border border-primary/20">
                               {t}
                             </span>
@@ -227,7 +227,7 @@ const Portfolio = () => {
               <motion.div variants={itemVariants} className="glass-card p-6">
                 <h2 className="font-display font-bold text-xl mb-5 flex items-center gap-2"><span className="text-primary">🏆</span> Achievements</h2>
                 <div className="flex flex-wrap gap-4">
-                  {achievements.length > 0 ? achievements.map((a: any) => (
+                  {achievements.length > 0 ? (Array.isArray(achievements) ? achievements : []).map((a: any) => (
                     <motion.div key={a._id} whileHover={{ scale: 1.05, y: -4 }}
                       className="glass p-4 rounded-xl flex flex-col items-center text-center w-[110px] border border-border/50 shadow-sm">
                       <span className="text-4xl mb-2 drop-shadow-md">{a.icon}</span>
@@ -294,10 +294,10 @@ const Portfolio = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="font-semibold text-lg text-primary">Core Skills</h3>
-                    <button onClick={() => setEditData({...editData, skills: [...editData.skills, { name: "", level: 50 }]})} className="text-xs flex items-center gap-1 text-primary hover:underline"><Plus size={14}/> Add Skill</button>
+                    <button onClick={() => setEditData({...editData, skills: [...(Array.isArray(editData.skills) ? editData.skills : []), { name: "", level: 50 }]})} className="text-xs flex items-center gap-1 text-primary hover:underline"><Plus size={14}/> Add Skill</button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {editData.skills.map((s: any, i: number) => (
+                    {(Array.isArray(editData.skills) ? editData.skills : []).map((s: any, i: number) => (
                       <div key={i} className="flex gap-2 items-center bg-white/5 p-2 rounded-lg border border-border/30">
                         <input type="text" value={s.name} onChange={e => { const newSkills = [...editData.skills]; newSkills[i].name = e.target.value; setEditData({...editData, skills: newSkills}); }} className="flex-1 bg-transparent text-sm focus:outline-none px-2" placeholder="Skill name" />
                         <input type="number" min="0" max="100" value={s.level} onChange={e => { const newSkills = [...editData.skills]; newSkills[i].level = Number(e.target.value); setEditData({...editData, skills: newSkills}); }} className="w-16 bg-background/50 border border-border rounded text-sm p-1 text-center" />
@@ -313,10 +313,10 @@ const Portfolio = () => {
                 <div className="space-y-4">
                   <div className="flex justify-between items-center">
                     <h3 className="font-semibold text-lg text-primary">Custom Projects</h3>
-                    <button onClick={() => setEditData({...editData, customProjects: [{ title: "", description: "", tech: [], demoUrl: "", githubUrl: "" }, ...editData.customProjects]})} className="text-xs flex items-center gap-1 text-primary hover:underline"><Plus size={14}/> Add Project</button>
+                    <button onClick={() => setEditData({...editData, customProjects: [{ title: "", description: "", tech: [], demoUrl: "", githubUrl: "" }, ...(Array.isArray(editData.customProjects) ? editData.customProjects : [])]})} className="text-xs flex items-center gap-1 text-primary hover:underline"><Plus size={14}/> Add Project</button>
                   </div>
                   <div className="space-y-4">
-                    {editData.customProjects.map((p: any, i: number) => (
+                    {(Array.isArray(editData.customProjects) ? editData.customProjects : []).map((p: any, i: number) => (
                       <div key={i} className="bg-white/5 p-4 rounded-xl border border-border/50 relative">
                         <button onClick={() => { const newProj = editData.customProjects.filter((_: any, idx: number) => idx !== i); setEditData({...editData, customProjects: newProj}); }} className="absolute top-4 right-4 text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
                         <div className="space-y-3 pr-8">

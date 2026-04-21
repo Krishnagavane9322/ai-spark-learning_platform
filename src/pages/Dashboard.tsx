@@ -100,8 +100,8 @@ const Dashboard = () => {
   const personalizedPath = assessmentData?.personalizedPath || [];
   const weeklyActivity = dashData?.weeklyActivity || [];
   const achievements = dashData?.achievements || [];
-  const completedCount = personalizedPath.filter((s: any) => s.status === "completed").length;
-  const totalSteps = personalizedPath.length;
+  const completedCount = Array.isArray(personalizedPath) ? personalizedPath.filter((s: any) => s.status === "completed").length : 0;
+  const totalSteps = Array.isArray(personalizedPath) ? personalizedPath.length : 0;
   const overallProgress = totalSteps > 0 ? Math.round((completedCount / totalSteps) * 100) : 0;
 
   return (
@@ -138,7 +138,7 @@ const Dashboard = () => {
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {stats.map((stat, i) => (
+          {(Array.isArray(stats) ? stats : []).map((stat, i) => (
             <motion.div key={stat.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}
               className="glass-card p-5 flex items-center gap-4 hover:neon-glow-cyan transition-shadow">
               <div className={`p-3 rounded-lg bg-muted ${stat.color}`}><stat.icon size={22} /></div>
@@ -187,7 +187,7 @@ const Dashboard = () => {
 
             {personalizedPath.length > 0 ? (
               <div className="space-y-2">
-                {personalizedPath.map((step: any, i: number) => {
+                {(Array.isArray(personalizedPath) ? personalizedPath : []).map((step: any, i: number) => {
                   const isExpanded = expandedStep === step.stepId;
                   const canExpand = step.status !== "locked";
                   const resourceTypeIcon: Record<string, string> = {
@@ -277,7 +277,7 @@ const Dashboard = () => {
                                     <Code2 size={13} className="text-primary" /> What you'll learn
                                   </p>
                                   <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
-                                    {step.whatYouLearn.map((item: string, j: number) => (
+                                    {(Array.isArray(step.whatYouLearn) ? step.whatYouLearn : []).map((item: string, j: number) => (
                                       <li key={j} className="flex items-start gap-2 text-xs text-muted-foreground">
                                         <CheckCircle2 size={12} className="text-primary shrink-0 mt-0.5" />
                                         {item}
@@ -294,7 +294,7 @@ const Dashboard = () => {
                                     <BookOpen size={13} className="text-primary" /> Learning Resources
                                   </p>
                                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                    {step.resources.map((r: any, j: number) => {
+                                    {(Array.isArray(step.resources) ? step.resources : []).map((r: any, j: number) => {
                                       const name = typeof r === "object" ? r.name : r;
                                       const url = typeof r === "object" ? r.url : null;
                                       const type = typeof r === "object" ? r.type : "docs";
@@ -369,7 +369,7 @@ const Dashboard = () => {
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="glass-card p-6">
               <h3 className="font-display font-semibold mb-4">Weekly Activity</h3>
               <div className="flex items-end gap-2 h-32">
-                {weeklyActivity.map((day: any, i: number) => {
+                {(Array.isArray(weeklyActivity) ? weeklyActivity : []).map((day: any, i: number) => {
                   const percent = Math.max(3, (day.hours / 5) * 100);
                   const isToday = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][new Date().getDay()] === day.day;
                   return (
@@ -395,7 +395,7 @@ const Dashboard = () => {
                 })}
               </div>
               <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                {weeklyActivity.reduce((sum: number, d: any) => sum + d.hours, 0).toFixed(1)}h total this week
+                {(Array.isArray(weeklyActivity) ? weeklyActivity : []).reduce((sum: number, d: any) => sum + d.hours, 0).toFixed(1)}h total this week
               </p>
             </motion.div>
 
@@ -403,7 +403,7 @@ const Dashboard = () => {
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }} className="glass-card p-6">
               <h3 className="font-display font-semibold mb-4">Achievements</h3>
               <div className="grid grid-cols-3 gap-3">
-                {achievements.map((a: any) => (
+                {(Array.isArray(achievements) ? achievements : []).map((a: any) => (
                   <motion.div
                     key={a._id}
                     whileHover={{ scale: 1.1 }}
@@ -429,7 +429,7 @@ const Dashboard = () => {
               <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.2 }} className="glass-card p-6">
                 <h3 className="font-display font-semibold mb-3">Your Interests</h3>
                 <div className="flex flex-wrap gap-2">
-                  {assessmentData.interests.map((interest: string) => (
+                  {(Array.isArray(assessmentData.interests) ? assessmentData.interests : []).map((interest: string) => (
                     <span key={interest} className="text-xs px-3 py-1.5 rounded-full bg-primary/10 text-primary border border-primary/20">
                       {interest}
                     </span>
