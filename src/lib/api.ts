@@ -25,7 +25,7 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     throw new Error("API returned invalid JSON (possibly an HTML fallback page).");
   }
 
-  if (!res.ok) throw new Error(data.error || data.message || `Request failed (${res.status})`);
+  if (!res.ok) throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
   return data;
 }
 

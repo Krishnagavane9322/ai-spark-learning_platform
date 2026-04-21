@@ -18,15 +18,30 @@ const messageRoutes = require("./routes/messages");
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
 const allowedOrigins = [
   "http://localhost:8080", 
   "http://localhost:5173", 
   "http://localhost:3000",
+  "https://ai-spark-learning-platform.vercel.app",
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
-app.use(cors({ origin: allowedOrigins, credentials: true }));
+const corsOptions = {
+  origin: function (origin, callback) {
+    if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  allowedHeaders: "Content-Type,Authorization"
+};
+
+app.use(cors(corsOptions));
+// Specifically handle OPTIONS preflight requests to prevent 404s on preflights
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Routes
