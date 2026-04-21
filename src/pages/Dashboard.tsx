@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Zap, Trophy, Target, Clock, Lock, CheckCircle2, Play, Sparkles, BookOpen, ExternalLink, ChevronRight } from "lucide-react";
+import { Flame, Zap, Trophy, Target, Clock, Lock, CheckCircle2, Play, Sparkles, BookOpen, ExternalLink, ChevronRight, ChevronDown, Code2 } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import AssessmentQuiz from "@/components/AssessmentQuiz";
+import StepQuiz from "@/components/StepQuiz";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -11,8 +12,10 @@ const Dashboard = () => {
   const [dashData, setDashData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [showQuiz, setShowQuiz] = useState(false);
+  const [expandedStep, setExpandedStep] = useState<number | null>(null);
   const [assessmentData, setAssessmentData] = useState<any>(null);
   const [completing, setCompleting] = useState<number | null>(null);
+  const [stepQuizTarget, setStepQuizTarget] = useState<any | null>(null);
   const [toast, setToast] = useState<{ message: string; xp: number } | null>(null);
 
   const fetchData = async () => {
@@ -183,83 +186,170 @@ const Dashboard = () => {
             )}
 
             {personalizedPath.length > 0 ? (
-              <div className="space-y-1">
-                {personalizedPath.map((step: any, i: number) => (
-                  <motion.div
-                    key={step.stepId}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="flex items-start gap-4"
-                  >
-                    <div className="flex flex-col items-center">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                        step.status === "completed" ? "bg-neon-green/20 text-neon-green" :
-                        step.status === "current" ? "bg-primary/20 text-primary neon-glow-cyan" :
-                        "bg-muted text-muted-foreground"
-                      }`}>
-                        {step.status === "completed" ? <CheckCircle2 size={18} /> :
-                         step.status === "current" ? <Play size={18} /> :
-                         <Lock size={16} />}
-                      </div>
-                      {i < personalizedPath.length - 1 && (
-                        <div className={`w-0.5 h-16 ${step.status === "completed" ? "bg-neon-green/30" : "bg-border"}`} />
-                      )}
-                    </div>
-                    <div className={`pb-4 flex-1 ${step.status === "locked" ? "opacity-50" : ""}`}>
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold text-sm">{step.title}</h3>
-                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">{step.category}</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{step.description}</p>
-                      <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1"><Clock size={12} /> {step.duration}</span>
-                        <span className="flex items-center gap-1"><Zap size={12} /> {step.xp} XP</span>
-                      </div>
-
-                      {/* Resources for current step */}
-                      {step.status === "current" && step.resources && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                          {step.resources.map((r: string) => (
-                            <span key={r} className="text-[10px] px-2 py-0.5 rounded-md bg-muted text-muted-foreground flex items-center gap-1">
-                              <ExternalLink size={9} /> {r}
-                            </span>
-                          ))}
+              <div className="space-y-2">
+                {personalizedPath.map((step: any, i: number) => {
+                  const isExpanded = expandedStep === step.stepId;
+                  const canExpand = step.status !== "locked";
+                  const resourceTypeIcon: Record<string, string> = {
+                    docs: "📄", course: "🎓", video: "📺", practice: "🏋️", book: "📘"
+                  };
+                  return (
+                    <motion.div
+                      key={step.stepId}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className={`rounded-xl border overflow-hidden transition-all ${
+                        step.status === "completed" ? "border-neon-green/20 bg-neon-green/5" :
+                        step.status === "current" ? "border-primary/40 bg-primary/5" :
+                        "border-border/40 bg-white/2 opacity-60"
+                      }`}
+                    >
+                      {/* Step Header — always visible */}
+                      <button
+                        onClick={() => step.status !== "locked" && setExpandedStep(isExpanded ? null : step.stepId)}
+                        className={`w-full flex items-center gap-3 p-4 text-left ${
+                          step.status === "locked" ? "cursor-not-allowed" : "cursor-pointer hover:bg-white/3 transition-colors"
+                        }`}
+                      >
+                        {/* Status icon */}
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center shrink-0 ${
+                          step.status === "completed" ? "bg-neon-green/20 text-neon-green" :
+                          step.status === "current" ? "bg-primary/20 text-primary" :
+                          "bg-muted text-muted-foreground"
+                        }`}>
+                          {step.status === "completed" ? <CheckCircle2 size={18} /> :
+                           step.status === "current" ? <Play size={16} /> :
+                           <Lock size={14} />}
                         </div>
-                      )}
 
-                      {/* Action button for current step */}
-                      {step.status === "current" && (
-                        <motion.button
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                          disabled={completing === step.stepId}
-                          onClick={() => handleCompleteStep(step.stepId, step.title)}
-                          className="mt-3 px-4 py-2 rounded-lg bg-gradient-to-r from-primary to-secondary text-primary-foreground text-xs font-semibold flex items-center gap-2 hover:brightness-110 transition-all disabled:opacity-50"
-                        >
-                          {completing === step.stepId ? (
-                            <>
-                              <div className="w-3 h-3 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full animate-spin" />
-                              Completing...
-                            </>
-                          ) : (
-                            <>
-                              <CheckCircle2 size={14} /> Mark as Completed
-                              <ChevronRight size={14} />
-                            </>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <h3 className="font-semibold text-sm">{step.title}</h3>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-medium ${
+                              step.status === "completed" ? "bg-neon-green/10 text-neon-green" :
+                              "bg-primary/10 text-primary"
+                            }`}>{step.category}</span>
+                          </div>
+                          <div className="flex items-center gap-3 mt-0.5 text-xs text-muted-foreground">
+                            <span className="flex items-center gap-1"><Clock size={11} /> {step.duration}</span>
+                            <span className="flex items-center gap-1"><Zap size={11} /> {step.xp} XP</span>
+                            {step.status !== "locked" && (
+                              <span className="text-primary/70 text-[10px]">
+                                {(step.resources || []).length} resources
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          {step.status === "completed" && (
+                            <span className="text-[10px] text-neon-green font-medium hidden sm:flex items-center gap-1">
+                              <CheckCircle2 size={10} /> Completed
+                            </span>
                           )}
-                        </motion.button>
-                      )}
+                          {step.status !== "locked" && (
+                            <motion.div animate={{ rotate: isExpanded ? 180 : 0 }} transition={{ duration: 0.2 }}>
+                              <ChevronDown size={16} className="text-muted-foreground" />
+                            </motion.div>
+                          )}
+                        </div>
+                      </button>
 
-                      {/* Completed badge */}
-                      {step.status === "completed" && (
-                        <span className="inline-flex items-center gap-1 mt-2 text-[10px] text-neon-green font-medium">
-                          <CheckCircle2 size={10} /> Completed · +{step.xp} XP earned
-                        </span>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
+                      {/* Expanded Content */}
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.25, ease: "easeInOut" }}
+                            className="overflow-hidden"
+                          >
+                            <div className="px-4 pb-5 pt-1 space-y-4 border-t border-border/30">
+                              {/* Long description */}
+                              <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+
+                              {/* What you'll learn */}
+                              {step.whatYouLearn?.length > 0 && (
+                                <div>
+                                  <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                                    <Code2 size={13} className="text-primary" /> What you'll learn
+                                  </p>
+                                  <ul className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                                    {step.whatYouLearn.map((item: string, j: number) => (
+                                      <li key={j} className="flex items-start gap-2 text-xs text-muted-foreground">
+                                        <CheckCircle2 size={12} className="text-primary shrink-0 mt-0.5" />
+                                        {item}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+
+                              {/* Resources */}
+                              {step.resources?.length > 0 && (
+                                <div>
+                                  <p className="text-xs font-semibold text-foreground mb-2 flex items-center gap-1.5">
+                                    <BookOpen size={13} className="text-primary" /> Learning Resources
+                                  </p>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {step.resources.map((r: any, j: number) => {
+                                      const name = typeof r === "object" ? r.name : r;
+                                      const url = typeof r === "object" ? r.url : null;
+                                      const type = typeof r === "object" ? r.type : "docs";
+                                      return (
+                                        <a
+                                          key={j}
+                                          href={url || "#"}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className={`flex items-center gap-2.5 p-2.5 rounded-lg border transition-all group ${
+                                            url
+                                              ? "bg-white/5 border-border/50 hover:border-primary/50 hover:bg-primary/5 cursor-pointer"
+                                              : "bg-white/3 border-border/30 cursor-default"
+                                          }`}
+                                        >
+                                          <span className="text-base">{resourceTypeIcon[type] || "📄"}</span>
+                                          <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-medium group-hover:text-primary transition-colors truncate">{name}</p>
+                                            <p className="text-[10px] text-muted-foreground capitalize">{type}</p>
+                                          </div>
+                                          {url && <ExternalLink size={12} className="text-muted-foreground group-hover:text-primary transition-colors shrink-0" />}
+                                        </a>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Action */}
+                              {step.status === "current" && (
+                                <motion.button
+                                  whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                                  disabled={completing === step.stepId}
+                                  onClick={() => setStepQuizTarget({ stepId: step.stepId, title: step.title, category: step.category, xp: step.xp })}
+                                  className="w-full py-2.5 rounded-lg bg-gradient-to-r from-primary to-secondary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 hover:brightness-110 transition-all disabled:opacity-50"
+                                >
+                                  {completing === step.stepId ? (
+                                    <><div className="w-4 h-4 border-2 border-primary-foreground/40 border-t-primary-foreground rounded-full animate-spin" /> Completing...</>
+                                  ) : (
+                                    <><Trophy size={16} /> Take Step Test to Unlock Next <ChevronRight size={14} /></>
+                                  )}
+                                </motion.button>
+                              )}
+                              {step.status === "completed" && (
+                                <p className="text-center text-xs text-neon-green flex items-center justify-center gap-1">
+                                  <CheckCircle2 size={13} /> +{step.xp} XP earned
+                                </p>
+                              )}
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </motion.div>
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-12">
@@ -350,6 +440,19 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      <AnimatePresence>
+        {stepQuizTarget && (
+          <StepQuiz
+            step={stepQuizTarget}
+            onPass={() => {
+              handleCompleteStep(stepQuizTarget.stepId, stepQuizTarget.title);
+              setStepQuizTarget(null);
+            }}
+            onClose={() => setStepQuizTarget(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };

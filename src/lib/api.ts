@@ -1,4 +1,4 @@
-const API_URL = "/api";
+const API_URL = import.meta.env.VITE_API_URL || "/api";
 
 function getToken(): string | null {
   return localStorage.getItem("neuralpath_token");
@@ -13,8 +13,19 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
   };
 
   const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Request failed");
+
+  // Safely parse body — handles empty responses and non-JSON error pages
+  const text = await res.text();
+  let data: any = {};
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    // Server sent non-JSON (e.g. HTML error page or empty body)
+    if (!res.ok) throw new Error(`Server error ${res.status}: ${res.statusText}`);
+    return data as T;
+  }
+
+  if (!res.ok) throw new Error(data.error || data.message || `Request failed (${res.status})`);
   return data;
 }
 

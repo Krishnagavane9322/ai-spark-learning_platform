@@ -22,7 +22,7 @@ const userSchema = new mongoose.Schema({
   }],
   assessmentCompleted: { type: Boolean, default: false },
   interests: [{ type: String }],
-  personalizedPath: [{
+  personalizedPath: [new mongoose.Schema({
     stepId: Number,
     title: String,
     description: String,
@@ -30,8 +30,13 @@ const userSchema = new mongoose.Schema({
     duration: String,
     xp: Number,
     status: { type: String, enum: ["completed", "current", "locked"], default: "locked" },
-    resources: [String]
-  }],
+    whatYouLearn: [{ type: String }],
+    resources: [new mongoose.Schema({
+      name: { type: String },
+      url:  { type: String },
+      type: { type: String }
+    }, { _id: false })]
+  }, { _id: false })],
   roadmapProgress: [{
     stageId: Number,
     status: { type: String, enum: ["completed", "current", "locked"], default: "locked" }
