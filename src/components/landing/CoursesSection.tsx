@@ -26,7 +26,7 @@ const CoursesSection = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {courses.map((course, idx) => (
+          {(Array.isArray(courses) ? courses : []).map((course, idx) => (
             <motion.div
               key={course._id}
               initial={{ opacity: 0, y: 30 }}
@@ -65,7 +65,7 @@ const CoursesSection = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-1.5">
-                  {course.tags.map((tag: string) => (
+                  {(Array.isArray(course.tags) ? course.tags : []).map((tag: string) => (
                     <span key={tag} className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">{tag}</span>
                   ))}
                 </div>

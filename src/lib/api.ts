@@ -16,13 +16,13 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   // Safely parse body — handles empty responses and non-JSON error pages
   const text = await res.text();
-  let data: any = {};
+  let data: any = null;
   try {
-    data = text ? JSON.parse(text) : {};
+    data = text ? JSON.parse(text) : null;
   } catch {
-    // Server sent non-JSON (e.g. HTML error page or empty body)
+    // Server sent non-JSON (e.g. HTML error page or SPA index.html)
     if (!res.ok) throw new Error(`Server error ${res.status}: ${res.statusText}`);
-    return data as T;
+    throw new Error("API returned invalid JSON (possibly an HTML fallback page).");
   }
 
   if (!res.ok) throw new Error(data.error || data.message || `Request failed (${res.status})`);

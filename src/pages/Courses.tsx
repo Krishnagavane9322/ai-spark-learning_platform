@@ -39,17 +39,17 @@ const Courses = () => {
     });
   };
 
-  const enrolledCourses = courses.filter((c) => isEnrolled(c._id));
-  const browseCourses = courses.filter((c) =>
+  const enrolledCourses = Array.isArray(courses) ? courses.filter((c) => isEnrolled(c._id)) : [];
+  const browseCourses = Array.isArray(courses) ? courses.filter((c) =>
     filter === "all" ? true : filter === "free" ? c.price === 0 : c.price > 0
-  );
+  ) : [];
 
   const handleFreeEnroll = async (courseId: string) => {
     setEnrolling(true);
     try {
       await api.enrollCourse(courseId);
       await refreshUser();
-      setCourses(courses.map((c) => (c._id === courseId ? { ...c, students: c.students + 1 } : c)));
+      setCourses((Array.isArray(courses) ? courses : []).map((c) => (c._id === courseId ? { ...c, students: c.students + 1 } : c)));
       setSelectedCourse(null);
     } catch (err: any) {
       alert(err.message);
@@ -323,7 +323,7 @@ const Courses = () => {
                     </div>
                     <h2 className="font-display text-xl font-bold mb-2">{selectedCourse.title}</h2>
                     <div className="flex flex-wrap gap-2 mb-4">
-                      {selectedCourse.tags?.map((t: string) => (
+                      {(Array.isArray(selectedCourse.tags) ? selectedCourse.tags : []).map((t: string) => (
                         <span key={t} className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">
                           {t}
                         </span>
