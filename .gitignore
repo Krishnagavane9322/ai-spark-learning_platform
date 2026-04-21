@@ -23,7 +23,15 @@ dist-ssr
 *.sln
 *.sw?
 
-# local env files
+# Environment files — NEVER commit these
 .env
 .env.local
 .env.*.local
+server/.env
+server/.env.local
+server/.env.*.local
+
+# Misc
+server/uploads/*
+!server/uploads/.gitkeep
+server/server_error.log

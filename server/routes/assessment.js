@@ -123,13 +123,13 @@ router.post("/", auth, async (req, res) => {
       "Cybersecurity": ["Networking", "Linux", "Ethical Hacking"],
     };
 
+    // Skills start at 0 — they grow as the user completes learning path steps
     const newSkills = [];
     for (const interest of interests) {
-      const skills = skillMap[interest] || [];
-      for (const s of skills) {
+      const interestSkills = skillMap[interest] || [];
+      for (const s of interestSkills) {
         if (!newSkills.find(ns => ns.name === s)) {
-          const baseLevel = skillLevel === "beginner" ? 5 : skillLevel === "intermediate" ? 35 : 65;
-          newSkills.push({ name: s, level: baseLevel + Math.floor(Math.random() * 10) });
+          newSkills.push({ name: s, level: 0 });
         }
       }
     }
@@ -139,6 +139,26 @@ router.post("/", auth, async (req, res) => {
     user.personalizedPath = personalizedPath;
     user.skills = newSkills;
     user.xp += 100; // Bonus XP for completing assessment
+
+    // Unlock "First Steps" achievement for completing assessment
+    const Achievement = require("../models/Achievement");
+    const Notification = require("../models/Notification");
+    const firstSteps = await Achievement.findOne({ title: "First Steps" });
+    const alreadyHas = user.achievements.some(
+      a => a.achievementId?.toString() === firstSteps?._id?.toString()
+    );
+    if (firstSteps && !alreadyHas) {
+      user.achievements.push({ achievementId: firstSteps._id, unlockedAt: new Date() });
+      user.xp += 50;
+      await Notification.create({
+        userId: user._id,
+        type: "achievement",
+        title: `Achievement Unlocked: First Steps! 🏆`,
+        message: `You completed the assessment and earned the "First Steps" badge! +50 XP`,
+        icon: firstSteps.icon || "🏆",
+        link: "/dashboard"
+      });
+    }
 
     await user.save();
 
@@ -182,6 +202,37 @@ router.put("/step/:stepId/complete", auth, async (req, res) => {
     // Mark step as completed
     step.status = "completed";
     user.xp += step.xp || 100;
+
+    // Grow relevant skills based on completed step category
+    const categorySkillMap = {
+      "Frontend": ["JavaScript", "React", "CSS/Tailwind"],
+      "Backend": ["Node.js", "SQL"],
+      "ML": ["Python", "TensorFlow", "Data Science"],
+      "Foundations": ["Python", "JavaScript"],
+      "NLP": ["Python", "TensorFlow"],
+      "Mobile": ["React Native", "TypeScript", "Mobile UI"],
+      "DevOps": ["AWS", "Docker", "Kubernetes", "CI/CD"],
+      "Cloud": ["AWS", "Docker", "Kubernetes"],
+      "Research": ["Design Systems", "Figma"],
+      "Design": ["Figma", "Design Systems"],
+      "Tools": ["Figma"],
+      "Database": ["SQL"],
+      "Analysis": ["Python", "SQL", "Statistics", "Visualization"],
+      "Security": ["Networking", "Linux", "Ethical Hacking"],
+      "AppSec": ["Networking", "Ethical Hacking"],
+      "Offensive": ["Ethical Hacking", "Networking"],
+      "Crypto": ["Networking"],
+      "Math": ["Statistics"],
+      "Project": [], // Projects don't directly grow specific skills
+    };
+    const relatedSkills = categorySkillMap[step.category] || [];
+    for (const skillName of relatedSkills) {
+      const skill = user.skills.find(s => s.name === skillName);
+      if (skill) {
+        skill.level = Math.min(100, skill.level + 5);
+      }
+    }
+    user.markModified("skills");
 
     // Unlock next step
     const nextStep = user.personalizedPath.find(s => s.stepId === stepId + 1);

@@ -27,7 +27,20 @@ const Courses = () => {
       .finally(() => setLoading(false));
   }, []);
 
-  const filtered = courses.filter(c =>
+  // Robust enrolled check — handles both populated objects and raw ObjectId strings
+  const isEnrolled = (courseId: string) => {
+    if (!user?.enrolledCourses?.length) return false;
+    return user.enrolledCourses.some((c: any) => {
+      const id =
+        typeof c === "object" && c !== null
+          ? (c._id?.toString() ?? "")
+          : c?.toString() ?? "";
+      return id === courseId;
+    });
+  };
+
+  const enrolledCourses = courses.filter((c) => isEnrolled(c._id));
+  const browseCourses = courses.filter((c) =>
     filter === "all" ? true : filter === "free" ? c.price === 0 : c.price > 0
   );
 
@@ -36,7 +49,7 @@ const Courses = () => {
     try {
       await api.enrollCourse(courseId);
       await refreshUser();
-      setCourses(courses.map(c => c._id === courseId ? { ...c, students: c.students + 1 } : c));
+      setCourses(courses.map((c) => (c._id === courseId ? { ...c, students: c.students + 1 } : c)));
       setSelectedCourse(null);
     } catch (err: any) {
       alert(err.message);
@@ -48,10 +61,7 @@ const Courses = () => {
   const handlePaidEnroll = async (course: any) => {
     setEnrolling(true);
     try {
-      // Step 1: Create Razorpay order on backend
       const orderData = await api.createPaymentOrder(course._id);
-
-      // Step 2: Open Razorpay checkout
       const options = {
         key: orderData.keyId,
         amount: orderData.amount,
@@ -59,16 +69,9 @@ const Courses = () => {
         name: "NeuralPath",
         description: `Enroll in ${orderData.courseTitle}`,
         order_id: orderData.orderId,
-        prefill: {
-          name: user?.name || "",
-          email: user?.email || "",
-        },
-        theme: {
-          color: "#00e5ff",
-          backdrop_color: "rgba(0, 0, 0, 0.9)",
-        },
+        prefill: { name: user?.name || "", email: user?.email || "" },
+        theme: { color: "#00e5ff", backdrop_color: "rgba(0, 0, 0, 0.9)" },
         handler: async function (response: any) {
-          // Step 3: Verify payment on backend
           try {
             await api.verifyPayment({
               razorpay_order_id: response.razorpay_order_id,
@@ -76,10 +79,9 @@ const Courses = () => {
               razorpay_signature: response.razorpay_signature,
               courseId: course._id,
             });
-
             await refreshUser();
-            setCourses(prev =>
-              prev.map(c => c._id === course._id ? { ...c, students: c.students + 1 } : c)
+            setCourses((prev) =>
+              prev.map((c) => (c._id === course._id ? { ...c, students: c.students + 1 } : c))
             );
             setPaymentSuccess(true);
             setTimeout(() => {
@@ -96,7 +98,6 @@ const Courses = () => {
           },
         },
       };
-
       const rzp = new window.Razorpay(options);
       rzp.on("payment.failed", function (response: any) {
         alert("Payment failed: " + response.error.description);
@@ -108,10 +109,6 @@ const Courses = () => {
     } finally {
       setEnrolling(false);
     }
-  };
-
-  const isEnrolled = (courseId: string) => {
-    return user?.enrolledCourses?.some((c: any) => (c._id || c) === courseId);
   };
 
   if (loading) {
@@ -129,16 +126,101 @@ const Courses = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <div className="pt-20 pb-12 container mx-auto px-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
+
+        {/* ─── My Enrolled Courses — only shown when user has at least one enrollment ─── */}
+        <AnimatePresence>
+          {enrolledCourses.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="mb-12"
+            >
+              <div className="mb-5">
+                <h2 className="text-2xl font-display font-bold">
+                  My <span className="gradient-text">Enrolled Courses</span>
+                </h2>
+                <p className="text-muted-foreground text-sm mt-1">Pick up where you left off</p>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {enrolledCourses.map((course, i) => (
+                  <motion.div
+                    key={course._id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    whileHover={{ scale: 1.03 }}
+                    onClick={() => {
+                      setSelectedCourse(course);
+                      setPaymentSuccess(false);
+                    }}
+                    className="glass-card overflow-hidden cursor-pointer hover:neon-glow-cyan transition-shadow border border-primary/20"
+                  >
+                    <div className="h-32 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center relative">
+                      <span className="text-5xl">{course.image}</span>
+                      <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold bg-neon-green/20 text-neon-green flex items-center gap-1">
+                        <CheckCircle2 size={11} /> Enrolled
+                      </span>
+                      <span
+                        className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold ${
+                          course.price === 0
+                            ? "bg-neon-green/20 text-neon-green"
+                            : "bg-neon-violet/20 text-neon-violet"
+                        }`}
+                      >
+                        {course.price === 0 ? "Free" : `$${course.price}`}
+                      </span>
+                    </div>
+                    <div className="p-4">
+                      <h3 className="font-semibold mb-2">{course.title}</h3>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span className="flex items-center gap-1">
+                          <Clock size={12} /> {course.duration}
+                        </span>
+                        <span className="flex items-center gap-1 text-neon-cyan">
+                          <Star size={12} fill="currentColor" /> {course.rating}
+                        </span>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ─── Browse All Courses ─── */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4"
+        >
           <div>
-            <h1 className="text-3xl font-display font-bold">My <span className="gradient-text">Courses</span></h1>
-            <p className="text-muted-foreground mt-1">Browse and continue learning</p>
+            <h1 className="text-3xl font-display font-bold">
+              {enrolledCourses.length > 0 ? (
+                <>Browse <span className="gradient-text">All Courses</span></>
+              ) : (
+                <>Explore <span className="gradient-text">Courses</span></>
+              )}
+            </h1>
+            <p className="text-muted-foreground mt-1 text-sm">
+              {enrolledCourses.length > 0
+                ? "Discover more courses to enroll in"
+                : "Find the perfect course to start your journey"}
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Filter size={16} className="text-muted-foreground" />
-            {(["all", "free", "paid"] as const).map(f => (
-              <button key={f} onClick={() => setFilter(f)}
-                className={`px-4 py-1.5 rounded-lg text-sm capitalize transition-all ${filter === f ? "bg-primary text-primary-foreground" : "glass text-muted-foreground hover:text-foreground"}`}>
+            {(["all", "free", "paid"] as const).map((f) => (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`px-4 py-1.5 rounded-lg text-sm capitalize transition-all ${
+                  filter === f
+                    ? "bg-primary text-primary-foreground"
+                    : "glass text-muted-foreground hover:text-foreground"
+                }`}
+              >
                 {f}
               </button>
             ))}
@@ -146,44 +228,71 @@ const Courses = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((course, i) => (
-            <motion.div key={course._id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
+          {browseCourses.map((course, i) => (
+            <motion.div
+              key={course._id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
               whileHover={{ scale: 1.03 }}
-              onClick={() => { setSelectedCourse(course); setPaymentSuccess(false); }}
-              className="glass-card overflow-hidden cursor-pointer hover:neon-glow-cyan transition-shadow">
+              onClick={() => {
+                setSelectedCourse(course);
+                setPaymentSuccess(false);
+              }}
+              className="glass-card overflow-hidden cursor-pointer hover:neon-glow-cyan transition-shadow"
+            >
               <div className="h-36 bg-gradient-to-br from-primary/20 to-secondary/20 flex items-center justify-center relative">
                 <span className="text-5xl">{course.image}</span>
-                <span className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold ${course.price === 0 ? "bg-neon-green/20 text-neon-green" : "bg-neon-violet/20 text-neon-violet"}`}>
+                <span
+                  className={`absolute top-3 right-3 px-3 py-1 rounded-full text-xs font-semibold ${
+                    course.price === 0
+                      ? "bg-neon-green/20 text-neon-green"
+                      : "bg-neon-violet/20 text-neon-violet"
+                  }`}
+                >
                   {course.price === 0 ? "Free" : `$${course.price}`}
                 </span>
                 {isEnrolled(course._id) && (
-                  <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold bg-primary/20 text-primary">
-                    Enrolled
+                  <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold bg-primary/20 text-primary flex items-center gap-1">
+                    <CheckCircle2 size={11} /> Enrolled
                   </span>
                 )}
               </div>
               <div className="p-4">
                 <h3 className="font-semibold mb-2">{course.title}</h3>
                 <div className="flex items-center gap-3 text-xs text-muted-foreground mb-3">
-                  <span className="flex items-center gap-1"><Clock size={12} /> {course.duration}</span>
-                  <span className="flex items-center gap-1"><Users size={12} /> {course.students.toLocaleString()}</span>
-                  <span className="flex items-center gap-1 text-neon-cyan"><Star size={12} fill="currentColor" /> {course.rating}</span>
+                  <span className="flex items-center gap-1">
+                    <Clock size={12} /> {course.duration}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Users size={12} /> {course.students.toLocaleString()}
+                  </span>
+                  <span className="flex items-center gap-1 text-neon-cyan">
+                    <Star size={12} fill="currentColor" /> {course.rating}
+                  </span>
                 </div>
               </div>
             </motion.div>
           ))}
         </div>
 
-        {/* Course Detail Modal */}
+        {/* ─── Course Detail Modal ─── */}
         <AnimatePresence>
           {selectedCourse && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
               className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4"
-              onClick={() => setSelectedCourse(null)}>
-              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-                className="glass-card p-6 max-w-lg w-full neon-glow-cyan" onClick={e => e.stopPropagation()}>
-
-                {/* Payment Success */}
+              onClick={() => setSelectedCourse(null)}
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="glass-card p-6 max-w-lg w-full neon-glow-cyan"
+                onClick={(e) => e.stopPropagation()}
+              >
                 {paymentSuccess ? (
                   <motion.div
                     initial={{ scale: 0.8, opacity: 0 }}
@@ -199,18 +308,26 @@ const Courses = () => {
                       <CheckCircle2 size={32} className="text-neon-green" />
                     </motion.div>
                     <h3 className="font-display font-bold text-lg mb-2">Payment Successful! 🎉</h3>
-                    <p className="text-sm text-muted-foreground">You're enrolled in {selectedCourse.title}</p>
+                    <p className="text-sm text-muted-foreground">
+                      You're enrolled in {selectedCourse.title}
+                    </p>
                     <p className="text-xs text-neon-cyan mt-2">+100 XP earned!</p>
                   </motion.div>
                 ) : (
                   <>
                     <div className="flex justify-between items-start mb-4">
                       <span className="text-4xl">{selectedCourse.image}</span>
-                      <button onClick={() => setSelectedCourse(null)}><X size={20} className="text-muted-foreground" /></button>
+                      <button onClick={() => setSelectedCourse(null)}>
+                        <X size={20} className="text-muted-foreground" />
+                      </button>
                     </div>
                     <h2 className="font-display text-xl font-bold mb-2">{selectedCourse.title}</h2>
                     <div className="flex flex-wrap gap-2 mb-4">
-                      {selectedCourse.tags?.map((t: string) => <span key={t} className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">{t}</span>)}
+                      {selectedCourse.tags?.map((t: string) => (
+                        <span key={t} className="text-xs px-2 py-1 rounded-md bg-muted text-muted-foreground">
+                          {t}
+                        </span>
+                      ))}
                     </div>
                     <div className="flex gap-4 text-sm text-muted-foreground mb-4">
                       <span>{selectedCourse.modules} modules</span>
@@ -222,16 +339,23 @@ const Courses = () => {
                       <div className="flex items-center justify-between p-3 rounded-lg bg-neon-violet/10 border border-neon-violet/20 mb-4">
                         <div>
                           <span className="text-sm text-muted-foreground">Course Price</span>
-                          <p className="text-[10px] text-muted-foreground/60">Powered by Razorpay • UPI, Cards, NetBanking</p>
+                          <p className="text-[10px] text-muted-foreground/60">
+                            Powered by Razorpay • UPI, Cards, NetBanking
+                          </p>
                         </div>
-                        <span className="text-2xl font-bold text-neon-violet">${selectedCourse.price}</span>
+                        <span className="text-2xl font-bold text-neon-violet">
+                          ${selectedCourse.price}
+                        </span>
                       </div>
                     )}
 
                     <div className="flex gap-3">
                       {isEnrolled(selectedCourse._id) ? (
-                        <button className="flex-1 py-3 rounded-lg bg-neon-green/20 text-neon-green font-semibold flex items-center justify-center gap-2" disabled>
-                          ✓ Already Enrolled
+                        <button
+                          className="flex-1 py-3 rounded-lg bg-neon-green/20 text-neon-green font-semibold flex items-center justify-center gap-2"
+                          disabled
+                        >
+                          <CheckCircle2 size={18} /> Already Enrolled
                         </button>
                       ) : selectedCourse.price > 0 ? (
                         <button
@@ -240,7 +364,9 @@ const Courses = () => {
                           className="flex-1 py-3 rounded-lg bg-gradient-to-r from-primary to-secondary text-primary-foreground font-semibold flex items-center justify-center gap-2 hover:brightness-110 transition-all disabled:opacity-50"
                         >
                           <CreditCard size={18} />
-                          {enrolling ? "Opening Razorpay..." : `Pay ₹${Math.round(selectedCourse.price * 83)} & Enroll`}
+                          {enrolling
+                            ? "Opening Razorpay..."
+                            : `Pay ₹${Math.round(selectedCourse.price * 83)} & Enroll`}
                         </button>
                       ) : (
                         <button

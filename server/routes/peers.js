@@ -36,6 +36,27 @@ router.post("/:id/connect", auth, async (req, res) => {
     user.connections.push(peer._id);
     peer.connections.push(user._id);
     user.xp += 25;
+
+    // Unlock "Social Butterfly" on first connection
+    const Achievement = require("../models/Achievement");
+    const Notification = require("../models/Notification");
+    const socialButterfly = await Achievement.findOne({ title: "Social Butterfly" });
+    const alreadyHas = user.achievements.some(
+      a => a.achievementId?.toString() === socialButterfly?._id?.toString()
+    );
+    if (socialButterfly && !alreadyHas) {
+      user.achievements.push({ achievementId: socialButterfly._id, unlockedAt: new Date() });
+      user.xp += 50;
+      await Notification.create({
+        userId: user._id,
+        type: "achievement",
+        title: `Achievement Unlocked: Social Butterfly! 🦋`,
+        message: `You made your first peer connection! +50 XP`,
+        icon: socialButterfly.icon || "🦋",
+        link: "/peers"
+      });
+    }
+
     await user.save();
     await peer.save();
 

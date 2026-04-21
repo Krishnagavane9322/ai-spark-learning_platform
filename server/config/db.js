@@ -6,7 +6,9 @@ const connectDB = async () => {
     console.log(`MongoDB connected: ${conn.connection.host}`);
   } catch (error) {
     console.error("MongoDB connection error:", error.message);
-    process.exit(1);
+    // Do NOT exit — let the server still start so the frontend
+    // gets proper API error responses instead of ERR_CONNECTION_REFUSED.
+    // process.exit(1);
   }
 };
 

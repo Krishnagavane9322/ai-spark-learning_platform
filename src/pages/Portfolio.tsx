@@ -148,25 +148,34 @@ const Portfolio = () => {
             <motion.div variants={itemVariants} className="md:col-span-1 glass-card p-6 h-fit">
               <h2 className="font-display font-bold text-xl mb-5 flex items-center gap-2"><span className="text-primary">⚡</span> Core Skills</h2>
               <div className="space-y-4">
-                {skills.length > 0 ? skills.map((skill: any, i: number) => (
-                  <div key={i}>
-                    <div className="flex justify-between text-sm mb-1.5 font-medium">
-                      <span>{skill.name}</span>
-                      <span className="text-muted-foreground text-xs">{skill.level}%</span>
+                {(() => {
+                  const earnedSkills = skills.filter((s: any) => s.level > 0);
+                  if (earnedSkills.length > 0) {
+                    return earnedSkills.map((skill: any, i: number) => (
+                      <div key={i}>
+                        <div className="flex justify-between text-sm mb-1.5 font-medium">
+                          <span>{skill.name}</span>
+                          <span className="text-muted-foreground text-xs">{skill.level}%</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            whileInView={{ width: `${skill.level}%` }}
+                            viewport={{ once: true }}
+                            transition={{ duration: 1, delay: i * 0.1, ease: "easeOut" }}
+                            className="h-full rounded-full bg-gradient-to-r from-primary to-secondary"
+                          />
+                        </div>
+                      </div>
+                    ));
+                  }
+                  return (
+                    <div className="text-center py-6">
+                      <p className="text-sm text-muted-foreground mb-3">No skills yet — complete learning path steps to grow your skills.</p>
+                      <p className="text-xs text-primary/70">Start with the Assessment on your Dashboard!</p>
                     </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <motion.div
-                        initial={{ width: 0 }}
-                        whileInView={{ width: `${skill.level}%` }}
-                        viewport={{ once: true }}
-                        transition={{ duration: 1, delay: i * 0.1, ease: "easeOut" }}
-                        className="h-full rounded-full bg-gradient-to-r from-primary to-secondary"
-                      />
-                    </div>
-                  </div>
-                )) : (
-                   <p className="text-sm text-muted-foreground">No skills added yet.</p>
-                )}
+                  );
+                })()}
               </div>
             </motion.div>
 

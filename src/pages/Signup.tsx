@@ -11,7 +11,7 @@ declare global {
   }
 }
 
-const GOOGLE_CLIENT_ID = "505462175239-85rrgcev24lbptu0h7sqjgdqa8lhn51q.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "422960419904-b7ia5git50cnekbrf4b4av59f3u64lei.apps.googleusercontent.com";
 
 const Signup = () => {
   const [name, setName] = useState("");

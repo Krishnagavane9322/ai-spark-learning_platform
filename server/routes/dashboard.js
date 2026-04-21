@@ -30,52 +30,13 @@ router.get("/", auth, async (req, res) => {
       roadmap = user.personalizedPath;
     }
 
-    // Map achievements with unlock status
+    // Map achievements with unlock status — only show achievements the user has
+    // explicitly earned through their actions, never auto-unlock on dashboard visit.
     const userAchievementIds = user.achievements.map(a => a.achievementId?.toString());
     const achievementList = achievements.map(a => ({
       ...a.toJSON(),
       unlocked: userAchievementIds.includes(a._id.toString())
     }));
-
-    // Auto-unlock achievements based on user activity
-    const achievementsToUnlock = [];
-
-    // "First Steps" - completed assessment
-    const firstSteps = achievements.find(a => a.title === "First Steps");
-    if (firstSteps && user.assessmentCompleted && !userAchievementIds.includes(firstSteps._id.toString())) {
-      achievementsToUnlock.push(firstSteps._id);
-    }
-
-    // "Social Butterfly" - has connections
-    const socialButterfly = achievements.find(a => a.title === "Social Butterfly");
-    if (socialButterfly && user.connections.length > 0 && !userAchievementIds.includes(socialButterfly._id.toString())) {
-      achievementsToUnlock.push(socialButterfly._id);
-    }
-
-    // Unlock any pending achievements
-    if (achievementsToUnlock.length > 0) {
-      for (const achId of achievementsToUnlock) {
-        user.achievements.push({ achievementId: achId, unlockedAt: new Date() });
-        user.xp += 50;
-        const ach = achievements.find(a => a._id.toString() === achId.toString());
-        if (ach) {
-          await Notification.create({
-            userId: user._id,
-            type: "achievement",
-            title: `Achievement Unlocked: ${ach.title}!`,
-            message: `You earned the "${ach.title}" badge! +50 XP`,
-            icon: ach.icon || "🏆",
-            link: "/dashboard"
-          });
-        }
-      }
-      await user.save();
-      // Refresh achievement list
-      const newAchievementIds = user.achievements.map(a => a.achievementId?.toString());
-      achievementList.forEach(a => {
-        if (newAchievementIds.includes(a._id.toString())) a.unlocked = true;
-      });
-    }
 
     // Update streak - check if user logged in today
     const lastActivity = user.updatedAt;
