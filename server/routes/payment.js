@@ -36,8 +36,8 @@ router.post("/create-order", auth, async (req, res) => {
       return res.status(400).json({ error: "This is a free course, no payment needed" });
     }
 
-    // Convert USD to INR (approximate) — Razorpay works in paise (INR)
-    const amountInPaise = Math.round(course.price * 83 * 100); // $1 ≈ ₹83
+    // Price is already in INR — Razorpay works in paise (INR)
+    const amountInPaise = Math.round(course.price * 100);
 
     const order = await razorpay.orders.create({
       amount: amountInPaise,

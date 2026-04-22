@@ -7,12 +7,137 @@ const Achievement = require("./models/Achievement");
 const User = require("./models/User");
 
 const courses = [
-  { title: "Full-Stack Web Development", category: "Development", level: "Intermediate", duration: "12 weeks", students: 15420, rating: 4.8, price: 0, image: "🌐", modules: 24, tags: ["React", "Node.js", "MongoDB"] },
-  { title: "AI & Machine Learning Mastery", category: "AI/ML", level: "Advanced", duration: "16 weeks", students: 8930, rating: 4.9, price: 49, image: "🤖", modules: 32, tags: ["Python", "TensorFlow", "PyTorch"] },
-  { title: "UI/UX Design Fundamentals", category: "Design", level: "Beginner", duration: "8 weeks", students: 22100, rating: 4.7, price: 0, image: "🎨", modules: 16, tags: ["Figma", "Adobe XD", "Prototyping"] },
-  { title: "Cloud Computing with AWS", category: "DevOps", level: "Intermediate", duration: "10 weeks", students: 6750, rating: 4.6, price: 39, image: "☁️", modules: 20, tags: ["AWS", "Docker", "Kubernetes"] },
-  { title: "Mobile App Development", category: "Development", level: "Intermediate", duration: "14 weeks", students: 11200, rating: 4.8, price: 29, image: "📱", modules: 28, tags: ["React Native", "Flutter", "Firebase"] },
-  { title: "Cybersecurity Essentials", category: "Security", level: "Beginner", duration: "6 weeks", students: 9800, rating: 4.5, price: 0, image: "🔒", modules: 12, tags: ["Networking", "Ethical Hacking", "Encryption"] },
+  { 
+    title: "Python Masterclass", 
+    category: "Development", 
+    level: "Beginner", 
+    duration: "10 weeks", 
+    students: 12000, 
+    rating: 4.9, 
+    price: 1500, 
+    image: "🐍", 
+    modules: 15, 
+    tags: ["Python", "Programming", "Data"],
+    topics: [
+      {
+        name: "1. Introduction to Python",
+        videos: [
+          { title: "What is Python?", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "10:00" },
+          { title: "Setting up the Environment", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "15:00" }
+        ]
+      },
+      {
+        name: "2. Data Structures",
+        videos: [
+          { title: "Lists and Tuples", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "20:00" },
+          { title: "Dictionaries", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "18:00" }
+        ]
+      }
+    ]
+  },
+  { 
+    title: "Full-Stack Web Development", category: "Development", level: "Intermediate", duration: "12 weeks", students: 15420, rating: 4.8, price: 0, image: "🌐", modules: 24, tags: ["React", "Node.js", "MongoDB"],
+    topics: [
+      {
+        name: "1. Frontend Fundamentals",
+        videos: [
+          { title: "HTML Basics", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "15:00" },
+          { title: "CSS Flexbox & Grid", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "25:00" }
+        ]
+      },
+      {
+        name: "2. Backend with Node.js",
+        videos: [
+          { title: "Intro to Express", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "30:00" }
+        ]
+      }
+    ]
+  },
+  { 
+    title: "AI & Machine Learning Mastery", category: "AI/ML", level: "Advanced", duration: "16 weeks", students: 8930, rating: 4.9, price: 3999, image: "🤖", modules: 32, tags: ["Python", "TensorFlow", "PyTorch"],
+    topics: [
+      {
+        name: "1. Math for ML",
+        videos: [
+          { title: "Linear Algebra Refresher", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "45:00" }
+        ]
+      },
+      {
+        name: "2. Neural Networks",
+        videos: [
+          { title: "Backpropagation Explained", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "50:00" }
+        ]
+      }
+    ]
+  },
+  { 
+    title: "UI/UX Design Fundamentals", category: "Design", level: "Beginner", duration: "8 weeks", students: 22100, rating: 4.7, price: 0, image: "🎨", modules: 16, tags: ["Figma", "Adobe XD", "Prototyping"],
+    topics: [
+      {
+        name: "1. Design Theory",
+        videos: [
+          { title: "Color Theory & Typography", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "20:00" }
+        ]
+      },
+      {
+        name: "2. Tools",
+        videos: [
+          { title: "Figma Masterclass", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "40:00" }
+        ]
+      }
+    ]
+  },
+  { 
+    title: "Cloud Computing with AWS", category: "DevOps", level: "Intermediate", duration: "10 weeks", students: 6750, rating: 4.6, price: 2999, image: "☁️", modules: 20, tags: ["AWS", "Docker", "Kubernetes"],
+    topics: [
+      {
+        name: "1. Core AWS Services",
+        videos: [
+          { title: "EC2 & S3 Deep Dive", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "35:00" }
+        ]
+      },
+      {
+        name: "2. Containers",
+        videos: [
+          { title: "Dockerizing Applications", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "28:00" }
+        ]
+      }
+    ]
+  },
+  { 
+    title: "Mobile App Development", category: "Development", level: "Intermediate", duration: "14 weeks", students: 11200, rating: 4.8, price: 1999, image: "📱", modules: 28, tags: ["React Native", "Flutter", "Firebase"],
+    topics: [
+      {
+        name: "1. React Native Basics",
+        videos: [
+          { title: "Components & State", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "22:00" }
+        ]
+      },
+      {
+        name: "2. Navigation",
+        videos: [
+          { title: "React Navigation v6", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "30:00" }
+        ]
+      }
+    ]
+  },
+  { 
+    title: "Cybersecurity Essentials", category: "Security", level: "Beginner", duration: "6 weeks", students: 9800, rating: 4.5, price: 0, image: "🔒", modules: 12, tags: ["Networking", "Ethical Hacking", "Encryption"],
+    topics: [
+      {
+        name: "1. Network Security",
+        videos: [
+          { title: "TCP/IP & Firewalls", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "25:00" }
+        ]
+      },
+      {
+        name: "2. Offensive Security",
+        videos: [
+          { title: "Intro to Kali Linux", url: "https://www.youtube.com/embed/kqtD5dpn9C8", duration: "35:00" }
+        ]
+      }
+    ]
+  },
 ];
 
 const projects = [

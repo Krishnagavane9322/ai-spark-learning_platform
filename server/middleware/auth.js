@@ -3,6 +3,7 @@ const User = require("../models/User");
 
 const auth = async (req, res, next) => {
   try {
+    console.log("AUTH MIDDLEWARE:", req.method, req.originalUrl, req.headers.authorization ? "Has Auth Header" : "No Auth Header");
     const header = req.headers.authorization;
     if (!header || !header.startsWith("Bearer ")) {
       return res.status(401).json({ error: "No token provided" });

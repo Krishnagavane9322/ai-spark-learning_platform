@@ -64,7 +64,7 @@ router.post("/:id/enroll", auth, async (req, res) => {
       type: "course",
       title: `Enrolled: ${course.title}`,
       message: course.price > 0
-        ? `Payment of $${course.price} confirmed. You earned +100 XP!`
+        ? `Payment of ₹${course.price} confirmed. You earned +100 XP!`
         : `You've enrolled in a free course. +50 XP earned!`,
       icon: "📚",
       link: "/courses"

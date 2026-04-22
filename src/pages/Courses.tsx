@@ -168,7 +168,7 @@ const Courses = () => {
                             : "bg-neon-violet/20 text-neon-violet"
                         }`}
                       >
-                        {course.price === 0 ? "Free" : `$${course.price}`}
+                        {course.price === 0 ? "Free" : `₹${course.price}`}
                       </span>
                     </div>
                     <div className="p-4">
@@ -250,7 +250,7 @@ const Courses = () => {
                       : "bg-neon-violet/20 text-neon-violet"
                   }`}
                 >
-                  {course.price === 0 ? "Free" : `$${course.price}`}
+                  {course.price === 0 ? "Free" : `₹${course.price}`}
                 </span>
                 {isEnrolled(course._id) && (
                   <span className="absolute top-3 left-3 px-3 py-1 rounded-full text-xs font-semibold bg-primary/20 text-primary flex items-center gap-1">
@@ -344,7 +344,7 @@ const Courses = () => {
                           </p>
                         </div>
                         <span className="text-2xl font-bold text-neon-violet">
-                          ${selectedCourse.price}
+                          ₹{selectedCourse.price}
                         </span>
                       </div>
                     )}
@@ -352,10 +352,10 @@ const Courses = () => {
                     <div className="flex gap-3">
                       {isEnrolled(selectedCourse._id) ? (
                         <button
-                          className="flex-1 py-3 rounded-lg bg-neon-green/20 text-neon-green font-semibold flex items-center justify-center gap-2"
-                          disabled
+                          onClick={() => window.location.href = `/courses/${selectedCourse._id}`}
+                          className="flex-1 py-3 rounded-lg bg-neon-green/20 text-neon-green font-semibold flex items-center justify-center gap-2 hover:bg-neon-green/30 transition-all"
                         >
-                          <CheckCircle2 size={18} /> Already Enrolled
+                          <CheckCircle2 size={18} /> Go to Course
                         </button>
                       ) : selectedCourse.price > 0 ? (
                         <button
@@ -366,7 +366,7 @@ const Courses = () => {
                           <CreditCard size={18} />
                           {enrolling
                             ? "Opening Razorpay..."
-                            : `Pay ₹${Math.round(selectedCourse.price * 83)} & Enroll`}
+                            : `Pay ₹${selectedCourse.price} & Enroll`}
                         </button>
                       ) : (
                         <button

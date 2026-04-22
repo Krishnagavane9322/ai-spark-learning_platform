@@ -6,13 +6,20 @@ function getToken(): string | null {
 
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = getToken();
-  const headers: HeadersInit = {
+  const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
+  };
+  
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const finalHeaders = {
+    ...headers,
+    ...(options.headers as Record<string, string>),
   };
 
-  const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers });
+  const res = await fetch(`${API_URL}${endpoint}`, { ...options, headers: finalHeaders });
 
   // Safely parse body — handles empty responses and non-JSON error pages
   const text = await res.text();
@@ -90,6 +97,21 @@ export const api = {
   getProjects: () => request<any[]>("/projects"),
   submitProject: (id: string) =>
     request<any>(`/projects/${id}/submit`, { method: "POST" }),
+
+  submitProjectWithData: (id: string, formData: FormData) => {
+    const token = getToken();
+    return fetch(`${API_URL}/projects/${id}/submit`, {
+      method: "POST",
+      headers: { ...(token && { Authorization: `Bearer ${token}` }) },
+      body: formData,
+    }).then(async (res) => {
+      const text = await res.text();
+      let data: any = null;
+      try { data = text ? JSON.parse(text) : null; } catch { throw new Error(`Server error ${res.status}`); }
+      if (!res.ok) throw new Error(data?.error || `Request failed (${res.status})`);
+      return data;
+    });
+  },
 
   // Peers
   getPeers: () => request<any[]>("/peers"),

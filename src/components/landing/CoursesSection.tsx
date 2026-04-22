@@ -45,7 +45,7 @@ const CoursesSection = () => {
                       ? "bg-neon-green/20 text-neon-green" 
                       : "bg-neon-violet/20 text-neon-violet"
                   }`}>
-                    {course.price === 0 ? "Free" : `$${course.price}`}
+                    {course.price === 0 ? "Free" : `₹${course.price}`}
                   </span>
                 </div>
                 <div className="absolute inset-0 bg-gradient-to-t from-card to-transparent opacity-60" />

@@ -44,6 +44,9 @@ app.use(cors(corsOptions));
 app.options('*', cors(corsOptions));
 app.use(express.json());
 
+// Serve uploaded files (project screenshots, etc.)
+app.use("/uploads", express.static(require("path").join(__dirname, "uploads")));
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/courses", courseRoutes);
@@ -68,3 +71,4 @@ connectDB().then(() => {
     console.log(`Server running on port ${PORT}`);
   });
 });
+// Trigger nodemon restart

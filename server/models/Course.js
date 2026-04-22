@@ -11,7 +11,15 @@ const courseSchema = new mongoose.Schema({
   image: { type: String, default: "📚" },
   modules: { type: Number, default: 0 },
   tags: [{ type: String }],
-  description: { type: String, default: "" }
+  description: { type: String, default: "" },
+  topics: [{
+    name: { type: String },
+    videos: [{
+      title: { type: String },
+      url: { type: String },
+      duration: { type: String }
+    }]
+  }]
 }, { timestamps: true });
 
 module.exports = mongoose.model("Course", courseSchema);

@@ -11,6 +11,7 @@ import Signup from "./pages/Signup";
 import ForgotPassword from "./pages/ForgotPassword";
 import Dashboard from "./pages/Dashboard";
 import Courses from "./pages/Courses";
+import CoursePlayer from "./pages/CoursePlayer";
 import Projects from "./pages/Projects";
 import Peers from "./pages/Peers";
 import Portfolio from "./pages/Portfolio";
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/courses" element={<ProtectedRoute><Courses /></ProtectedRoute>} />
+            <Route path="/courses/:id" element={<ProtectedRoute><CoursePlayer /></ProtectedRoute>} />
             <Route path="/projects" element={<ProtectedRoute><Projects /></ProtectedRoute>} />
             <Route path="/peers" element={<ProtectedRoute><Peers /></ProtectedRoute>} />
             <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
