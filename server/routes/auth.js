@@ -4,6 +4,7 @@ const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
 const auth = require("../middleware/auth");
+const updateStreak = require("../utils/streak");
 
 const router = express.Router();
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -64,6 +65,8 @@ router.post("/google", async (req, res) => {
       });
       await user.save();
     }
+
+    await updateStreak(user);
 
     const token = generateToken(user._id);
     res.json({ user, token });
@@ -153,20 +156,7 @@ router.post("/login", async (req, res) => {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    // Update streak (simple daily check)
-    const today = new Date().toDateString();
-    const lastLogin = user.updatedAt ? new Date(user.updatedAt).toDateString() : null;
-    if (lastLogin !== today) {
-      const yesterday = new Date(Date.now() - 86400000).toDateString();
-      user.streak = lastLogin === yesterday ? user.streak + 1 : 1;
-
-      // Update weekly activity
-      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-      const todayDay = dayNames[new Date().getDay()];
-      const dayEntry = user.weeklyActivity.find(d => d.day === todayDay);
-      if (dayEntry) dayEntry.hours += 0.5;
-      await user.save();
-    }
+    await updateStreak(user);
 
     const token = generateToken(user._id);
     res.json({ user, token });

@@ -9,6 +9,7 @@ const userSchema = new mongoose.Schema({
   level: { type: Number, default: 1 },
   xp: { type: Number, default: 0 },
   streak: { type: Number, default: 0 },
+  lastActiveDate: { type: String }, // Format: "YYYY-MM-DD"
   skills: [{
     name: { type: String },
     level: { type: Number, default: 0 }

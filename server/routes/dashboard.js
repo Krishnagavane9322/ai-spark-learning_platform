@@ -4,6 +4,7 @@ const Course = require("../models/Course");
 const Achievement = require("../models/Achievement");
 const Notification = require("../models/Notification");
 const auth = require("../middleware/auth");
+const updateStreak = require("../utils/streak");
 
 const router = express.Router();
 
@@ -15,14 +16,8 @@ router.get("/", auth, async (req, res) => {
 
     const achievements = await Achievement.find();
 
-    // Update weekly activity - track today's login
-    const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-    const today = days[new Date().getDay()];
-    const dayEntry = user.weeklyActivity.find(d => d.day === today);
-    if (dayEntry && dayEntry.hours < 5) {
-      dayEntry.hours = Math.min(5, dayEntry.hours + 0.5);
-      await user.save();
-    }
+    // Update streak and activity
+    await updateStreak(user);
 
     // Use personalized path if available, otherwise provide a starter message
     let roadmap = [];
@@ -30,22 +25,12 @@ router.get("/", auth, async (req, res) => {
       roadmap = user.personalizedPath;
     }
 
-    // Map achievements with unlock status — only show achievements the user has
-    // explicitly earned through their actions, never auto-unlock on dashboard visit.
+    // Map achievements with unlock status
     const userAchievementIds = user.achievements.map(a => a.achievementId?.toString());
     const achievementList = achievements.map(a => ({
       ...a.toJSON(),
       unlocked: userAchievementIds.includes(a._id.toString())
     }));
-
-    // Update streak - check if user logged in today
-    const lastActivity = user.updatedAt;
-    const now = new Date();
-    const daysSinceActivity = Math.floor((now.getTime() - lastActivity.getTime()) / (1000 * 60 * 60 * 24));
-    if (daysSinceActivity <= 1 && user.streak === 0) {
-      user.streak = 1;
-      await user.save();
-    }
 
     // Calculate stats
     const stats = {
