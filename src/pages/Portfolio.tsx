@@ -182,6 +182,47 @@ const Portfolio = () => {
             {/* Main Content Area */}
             <div className="md:col-span-2 space-y-6">
               
+              {/* Certificates */}
+              <motion.div variants={itemVariants} className="glass-card p-6">
+                <h2 className="font-display font-bold text-xl mb-5 flex items-center gap-2">
+                  <span className="text-primary">📜</span> Earned Certificates
+                </h2>
+                {certificates.length > 0 ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {certificates.map((cert: any) => (
+                      <motion.div key={cert.certificateId} whileHover={{ y: -3 }} className="relative glass border border-amber-500/30 p-4 rounded-xl overflow-hidden group">
+                        <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                          <Award size={80} className="text-amber-500" />
+                        </div>
+                        <div className="flex items-start gap-3">
+                          <div className="w-10 h-10 rounded-lg bg-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+                            <Award size={20} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-bold text-sm truncate">{cert.courseTitle}</h3>
+                            <p className="text-[10px] text-muted-foreground mb-2">ID: {cert.certificateId}</p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-medium text-muted-foreground">{new Date(cert.issuedAt).toLocaleDateString()}</span>
+                              <button 
+                                onClick={() => window.open(`/verify/${cert.certificateId}`, '_blank')}
+                                className="text-[10px] font-bold text-amber-500 hover:underline flex items-center gap-1"
+                              >
+                                <QrCode size={12} /> Verify
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-6 glass rounded-xl border-dashed border-border/50">
+                    <p className="text-sm text-muted-foreground">No certificates earned yet.</p>
+                    <p className="text-xs text-muted-foreground/60 mt-1">Complete courses to earn verifiable credentials!</p>
+                  </div>
+                )}
+              </motion.div>
+              
               {/* Projects */}
               <motion.div variants={itemVariants} className="glass-card p-6">
                 <h2 className="font-display font-bold text-xl mb-5 flex items-center gap-2"><span className="text-primary">🚀</span> Featured Projects</h2>

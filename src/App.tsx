@@ -17,6 +17,7 @@ import Peers from "./pages/Peers";
 import Portfolio from "./pages/Portfolio";
 import Notes from "./pages/Notes";
 import Settings from "./pages/Settings";
+import VerifyCertificate from "./pages/VerifyCertificate";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ const App = () => (
             <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
             <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+            <Route path="/verify/:id" element={<VerifyCertificate />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

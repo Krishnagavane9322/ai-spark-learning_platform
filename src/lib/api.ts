@@ -80,6 +80,15 @@ export const api = {
       method: "POST",
       body: JSON.stringify(paymentData || {}),
     }),
+  updateCourseProgress: (courseId: string, videoUrl: string) =>
+    request<any>(`/courses/${courseId}/progress`, {
+      method: "POST",
+      body: JSON.stringify({ videoUrl }),
+    }),
+  completeCourse: (id: string) =>
+    request<any>(`/courses/${id}/complete`, { method: "POST" }),
+  getCertificates: () => request<any[]>("/certificates/my-certificates"),
+  verifyCertificate: (id: string) => request<any>(`/certificates/verify/${id}`),
 
   // Razorpay Payments
   createPaymentOrder: (courseId: string) =>

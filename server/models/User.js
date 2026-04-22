@@ -14,8 +14,14 @@ const userSchema = new mongoose.Schema({
     name: { type: String },
     level: { type: Number, default: 0 }
   }],
+  completedVideos: [{ type: String }], // Array of video URLs or IDs
   enrolledCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Course" }],
   completedProjects: [{ type: mongoose.Schema.Types.ObjectId, ref: "Project" }],
+  certificates: [{
+    courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
+    certificateId: { type: String },
+    issuedAt: { type: Date, default: Date.now }
+  }],
   connections: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   achievements: [{
     achievementId: { type: mongoose.Schema.Types.ObjectId, ref: "Achievement" },

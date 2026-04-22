@@ -8,6 +8,7 @@ const courseRoutes = require("./routes/courses");
 const projectRoutes = require("./routes/projects");
 const peerRoutes = require("./routes/peers");
 const noteRoutes = require("./routes/notes");
+const certificateRoutes = require("./routes/certificates");
 const dashboardRoutes = require("./routes/dashboard");
 const settingsRoutes = require("./routes/settings");
 const assessmentRoutes = require("./routes/assessment");
@@ -53,6 +54,7 @@ app.use("/api/courses", courseRoutes);
 app.use("/api/projects", projectRoutes);
 app.use("/api/peers", peerRoutes);
 app.use("/api/notes", noteRoutes);
+app.use("/api/certificates", certificateRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/assessment", assessmentRoutes);
@@ -71,4 +73,3 @@ connectDB().then(() => {
     console.log(`Server running on port ${PORT}`);
   });
 });
-// Trigger nodemon restart
