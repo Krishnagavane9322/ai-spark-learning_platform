@@ -123,7 +123,7 @@ function generateMindmap(text) {
 
   // 2. Extract high-frequency meaningful single words for fallback
   const allWords = text.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
-  const freq: Record<string, number> = {};
+  const freq = {};
   for (const w of allWords) {
     if (!stopWords.has(w)) freq[w] = (freq[w] || 0) + 1;
   }
@@ -134,7 +134,7 @@ function generateMindmap(text) {
     .map(([w]) => w.charAt(0).toUpperCase() + w.slice(1));
 
   // 3. Extract 2-word collocations from sentences
-  const bigrams: Record<string, number> = {};
+  const bigrams = {};
   for (const sent of sentences) {
     const words = sent.toLowerCase().replace(/[^a-z\s]/g, "").split(/\s+/).filter(w => w.length >= 3 && !stopWords.has(w));
     for (let i = 0; i < words.length - 1; i++) {
@@ -149,7 +149,7 @@ function generateMindmap(text) {
     .map(([bg]) => bg.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "));
 
   // Build branches: prefer headings, then bigrams, then single words
-  const branchSet = new Set<string>();
+  const branchSet = new Set();
   for (const h of headingPhrases) { if (branchSet.size < 8) branchSet.add(h); }
   for (const b of topBigrams) { if (branchSet.size < 8) branchSet.add(b); }
   for (const w of topWords) { if (branchSet.size < 8) branchSet.add(w); }
@@ -242,11 +242,30 @@ router.post("/", auth, upload.single("file"), async (req, res) => {
 // Delete a note
 router.delete("/:id", auth, async (req, res) => {
   try {
-    const note = await Note.findOneAndDelete({ _id: req.params.id, userId: req.userId });
-    if (!note) return res.status(404).json({ error: "Note not found" });
+    const noteId = req.params.id;
+    const userId = req.userId;
+    
+    console.log(`Attempting to delete note ${noteId} for user ${userId}`);
+    
+    const note = await Note.findById(noteId);
+    
+    if (!note) {
+      console.log(`Note ${noteId} not found in database`);
+      return res.status(404).json({ error: "Note not found" });
+    }
+    
+    // Check ownership
+    if (note.userId.toString() !== userId.toString()) {
+      console.log(`Ownership mismatch: Note belongs to ${note.userId}, but request from ${userId}`);
+      return res.status(403).json({ error: "You are not authorized to delete this note" });
+    }
+    
+    await Note.findByIdAndDelete(noteId);
+    console.log(`Note ${noteId} deleted successfully`);
     res.json({ message: "Note deleted" });
   } catch (error) {
-    res.status(500).json({ error: "Server error" });
+    console.error("DELETE ERROR:", error);
+    res.status(500).json({ error: "Server error during deletion" });
   }
 });
 

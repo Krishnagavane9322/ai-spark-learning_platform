@@ -210,19 +210,19 @@ const Notes = () => {
                       onClick={() => setFlipped(!flipped)}
                       animate={{ rotateY: flipped ? 180 : 0 }}
                       transition={{ duration: 0.6, type: "spring", stiffness: 200, damping: 20 }}
-                      className="glass-card h-80 cursor-pointer flex items-center justify-center text-center relative border-primary/20 hover:border-primary/40 transition-colors shadow-xl shadow-black/20"
+                      className="h-80 cursor-pointer relative"
                       style={{ transformStyle: "preserve-3d" }}
                     >
                       {/* Front */}
-                      <div style={{ backfaceVisibility: "hidden" }} className="absolute inset-0 flex flex-col items-center justify-center p-8">
+                      <div style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }} className="absolute inset-0 flex flex-col items-center justify-center p-8 glass-card border-primary/20 hover:border-primary/40 transition-colors shadow-xl shadow-black/20 text-center rounded-2xl">
                         <span className="absolute top-4 left-4 text-[10px] font-bold tracking-wider text-muted-foreground uppercase">Front</span>
                         <p className="text-xl md:text-2xl font-semibold leading-snug">{flashcards[currentCard]?.front}</p>
                       </div>
                       
                       {/* Back */}
-                      <div style={{ backfaceVisibility: "hidden", transform: "rotateY(180deg)" }} className="absolute inset-0 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border-2 border-primary/20">
+                      <div style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden", transform: "rotateY(180deg)" }} className="absolute inset-0 flex flex-col items-center justify-center p-8 glass-card bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl border-2 border-primary/20 shadow-xl shadow-black/20 text-center">
                         <span className="absolute top-4 left-4 text-[10px] font-bold tracking-wider text-primary uppercase">Back</span>
-                        <p className="text-lg md:text-xl text-foreground font-medium leading-relaxed">{flashcards[currentCard]?.back}</p>
+                        <p className="text-lg md:text-xl text-foreground font-medium leading-relaxed overflow-y-auto">{flashcards[currentCard]?.back}</p>
                       </div>
                     </motion.div>
                   </div>
@@ -272,10 +272,9 @@ const Notes = () => {
                   
                   return (
                     <motion.div key={i}
-                      initial={{ opacity: 0, scale: 0 }}
-                      animate={{ opacity: 1, scale: 1 }}
+                      initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
+                      animate={{ opacity: 1, scale: 1, x, y }}
                       transition={{ delay: i * 0.1, type: "spring" }}
-                      style={{ transform: `translate(${x}px, ${y}px)` }}
                       className="absolute p-3 rounded-xl bg-card border border-primary/30 text-xs md:text-sm font-semibold text-foreground hover:border-primary hover:shadow-lg hover:shadow-primary/20 transition-all cursor-pointer z-10 whitespace-nowrap"
                     >
                       {branch}
