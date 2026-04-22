@@ -136,6 +136,12 @@ router.post("/:id/complete", auth, async (req, res) => {
       });
     }
 
+    // Verify quiz was passed
+    const quizResult = user.quizScores.find(s => s.courseId.toString() === course._id.toString());
+    if (!quizResult || !quizResult.passed) {
+      return res.status(400).json({ error: "You must pass the final quiz (score >= 70%) before claiming the certificate" });
+    }
+
     // Generate unique certificate ID
     const certificateId = `NP-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(2).toString('hex').toUpperCase()}`;
     
@@ -146,6 +152,7 @@ router.post("/:id/complete", auth, async (req, res) => {
       certificateId,
       userName: user.name,
       courseTitle: course.title,
+      score: quizResult.score,
       issuedAt: new Date()
     });
 
@@ -176,6 +183,54 @@ router.post("/:id/complete", auth, async (req, res) => {
   } catch (error) {
     console.error("Course completion error:", error);
     res.status(500).json({ error: "Server error during completion" });
+  }
+});
+
+// Submit quiz and record score
+router.post("/:id/quiz/submit", auth, async (req, res) => {
+  try {
+    const { answers } = req.body;
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ error: "Course not found" });
+
+    if (!course.quiz || course.quiz.length === 0) {
+      return res.status(400).json({ error: "This course does not have a quiz" });
+    }
+
+    let correctCount = 0;
+    course.quiz.forEach((q, index) => {
+      if (answers[index] === q.correctOption) {
+        correctCount++;
+      }
+    });
+
+    const score = Math.round((correctCount / course.quiz.length) * 100);
+    const passed = score >= 70;
+
+    const user = await User.findById(req.userId);
+    
+    const existingScoreIndex = user.quizScores.findIndex(s => s.courseId.toString() === course._id.toString());
+    if (existingScoreIndex > -1) {
+      user.quizScores[existingScoreIndex] = { courseId: course._id, score, passed, attemptedAt: new Date() };
+    } else {
+      user.quizScores.push({ courseId: course._id, score, passed });
+    }
+
+    if (passed) {
+      user.xp += 50; 
+    }
+    
+    await user.save();
+
+    res.json({
+      message: passed ? "Congratulations! You passed the quiz." : "You did not pass. Please review and try again.",
+      score,
+      passed,
+      correctCount,
+      totalQuestions: course.quiz.length
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Server error during quiz submission" });
   }
 });
 

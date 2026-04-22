@@ -14,6 +14,10 @@ const CoursePlayer = () => {
   const [completedVideos, setCompletedVideos] = useState<string[]>([]);
   const [claiming, setClaiming] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const [showQuiz, setShowQuiz] = useState(false);
+  const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
+  const [quizResult, setQuizResult] = useState<any>(null);
+  const [quizScore, setQuizScore] = useState<any>(null);
 
   useEffect(() => {
     if (id) {
@@ -25,6 +29,7 @@ const CoursePlayer = () => {
           setCourse(data);
           setCompletedVideos(user.completedVideos || []);
           setIsCompleted(user.certificates?.some((c: any) => c.courseId === id));
+          setQuizScore(user.quizScores?.find((s: any) => s.courseId === id));
           // Set the first video as active if topics exist
           if (data.topics && data.topics.length > 0) {
             const firstTopicWithVideos = data.topics.find((t: any) => t.videos && t.videos.length > 0);
@@ -52,8 +57,33 @@ const CoursePlayer = () => {
     }
   };
 
+  const handleQuizSubmit = async () => {
+    if (!id) return;
+    if (quizAnswers.length < (course.quiz?.length || 0)) {
+      alert("Please answer all questions before submitting.");
+      return;
+    }
+    setClaiming(true);
+    try {
+      const res = await api.submitCourseQuiz(id, quizAnswers);
+      setQuizResult(res);
+      setQuizScore(res);
+      if (res.passed) {
+        alert("You passed! You can now claim your certificate.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Failed to submit quiz");
+    } finally {
+      setClaiming(false);
+    }
+  };
+
   const handleClaimCertificate = async () => {
     if (!id) return;
+    if (!quizScore?.passed) {
+      alert("You must pass the quiz (70%+) first!");
+      return;
+    }
     setClaiming(true);
     try {
       await api.completeCourse(id);
@@ -95,12 +125,124 @@ const CoursePlayer = () => {
     return acc + (t.videos?.filter((v: any) => completedVideos.includes(v.url)).length || 0);
   }, 0) || 0;
   const progressPercent = totalVideos > 0 ? Math.round((watchedCount / totalVideos) * 100) : 0;
-  const canClaim = progressPercent === 100 && !isCompleted;
+  
+  const needsQuiz = progressPercent === 100 && !quizScore?.passed;
+  const canClaim = progressPercent === 100 && quizScore?.passed && !isCompleted;
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <div className="pt-20 flex-1 flex flex-col lg:flex-row h-[calc(100vh-80px)] overflow-hidden">
+      <div className="pt-20 flex-1 flex flex-col lg:flex-row h-[calc(100vh-80px)] overflow-hidden relative">
+        
+        {/* Quiz Modal Overlay */}
+        <AnimatePresence>
+          {showQuiz && (
+            <motion.div 
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md"
+            >
+              <motion.div 
+                initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }}
+                className="w-full max-w-2xl bg-card border border-border shadow-2xl rounded-2xl overflow-hidden flex flex-col max-h-[85vh]"
+              >
+                <div className="p-6 border-b border-border bg-muted/30 flex items-center justify-between">
+                  <div>
+                    <h2 className="text-2xl font-bold">Final Assessment</h2>
+                    <p className="text-sm text-muted-foreground">Score 70% or higher to earn your certificate</p>
+                  </div>
+                  <button onClick={() => setShowQuiz(false)} className="p-2 rounded-full hover:bg-white/10"><X size={20} /></button>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
+                  {!quizResult ? (
+                    course.quiz?.map((q: any, qIdx: number) => (
+                      <div key={qIdx} className="space-y-4">
+                        <h3 className="font-semibold text-lg flex gap-3">
+                          <span className="text-primary">{qIdx + 1}.</span> {q.question}
+                        </h3>
+                        <div className="grid gap-3">
+                          {q.options.map((opt: string, oIdx: number) => (
+                            <button
+                              key={oIdx}
+                              onClick={() => {
+                                const newAnswers = [...quizAnswers];
+                                newAnswers[qIdx] = oIdx;
+                                setQuizAnswers(newAnswers);
+                              }}
+                              className={`p-4 rounded-xl text-left transition-all border ${
+                                quizAnswers[qIdx] === oIdx
+                                  ? "bg-primary/20 border-primary text-foreground font-semibold"
+                                  : "bg-white/5 border-border hover:border-primary/50"
+                              }`}
+                            >
+                              {opt}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12 space-y-6">
+                      <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center text-4xl shadow-lg ${
+                        quizResult.passed ? "bg-green-500/20 text-green-500 shadow-green-500/20" : "bg-destructive/20 text-destructive shadow-destructive/20"
+                      }`}>
+                        {quizResult.passed ? "🎉" : "💪"}
+                      </div>
+                      <div>
+                        <h3 className="text-3xl font-bold mb-2">
+                          {quizResult.passed ? "Congratulations!" : "Keep Practicing!"}
+                        </h3>
+                        <p className="text-muted-foreground">You scored {quizResult.score}% in the final assessment.</p>
+                      </div>
+                      <div className="flex justify-center gap-8">
+                        <div className="text-center">
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Correct</p>
+                          <p className="text-xl font-bold">{quizResult.correctCount}</p>
+                        </div>
+                        <div className="text-center border-l border-border pl-8">
+                          <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Questions</p>
+                          <p className="text-xl font-bold">{quizResult.totalQuestions}</p>
+                        </div>
+                      </div>
+                      {!quizResult.passed && (
+                        <p className="text-sm text-destructive font-medium">You need 70% to pass. Try again when you're ready!</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="p-6 border-t border-border flex justify-end gap-3 bg-muted/20">
+                  {!quizResult ? (
+                    <>
+                      <button onClick={() => setShowQuiz(false)} className="px-6 py-2 rounded-lg hover:bg-white/5 transition-colors">Cancel</button>
+                      <button 
+                        onClick={handleQuizSubmit}
+                        disabled={claiming}
+                        className="bg-primary text-primary-foreground px-8 py-2 rounded-lg font-bold shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 disabled:opacity-50"
+                      >
+                        {claiming ? "Grading..." : "Submit Answers"}
+                      </button>
+                    </>
+                  ) : (
+                    <button 
+                      onClick={() => {
+                        if (quizResult.passed) {
+                          setShowQuiz(false);
+                        } else {
+                          setQuizResult(null);
+                          setQuizAnswers([]);
+                        }
+                      }}
+                      className="bg-primary text-primary-foreground px-8 py-2 rounded-lg font-bold shadow-lg"
+                    >
+                      {quizResult.passed ? "Continue to Certificate" : "Try Again"}
+                    </button>
+                  )}
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         
         {/* Main Video Area */}
         <div className="flex-1 flex flex-col bg-black/40 overflow-y-auto">
@@ -115,17 +257,24 @@ const CoursePlayer = () => {
             </div>
             
             <div className="flex items-center gap-4">
-              {canClaim ? (
+              {needsQuiz ? (
+                <button 
+                  onClick={() => setShowQuiz(true)}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2 shadow-lg shadow-primary/20"
+                >
+                  Take Final Quiz 📝
+                </button>
+              ) : canClaim ? (
                 <button 
                   onClick={handleClaimCertificate}
                   disabled={claiming}
-                  className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold animate-pulse flex items-center gap-2"
+                  className="bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded-lg text-sm font-bold animate-pulse flex items-center gap-2 shadow-lg shadow-amber-500/20"
                 >
                   {claiming ? "Processing..." : <>Claim Certificate 🎓</>}
                 </button>
               ) : isCompleted ? (
                 <span className="bg-green-500/20 text-green-500 border border-green-500/30 px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2">
-                  Completed 🎓
+                  Completed 🎓 {quizScore?.score}%
                 </span>
               ) : null}
 

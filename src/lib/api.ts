@@ -87,6 +87,11 @@ export const api = {
     }),
   completeCourse: (id: string) =>
     request<any>(`/courses/${id}/complete`, { method: "POST" }),
+  submitCourseQuiz: (id: string, answers: number[]) =>
+    request<any>(`/courses/${id}/quiz/submit`, {
+      method: "POST",
+      body: JSON.stringify({ answers }),
+    }),
   getCertificates: () => request<any[]>("/certificates/my-certificates"),
   verifyCertificate: (id: string) => request<any>(`/certificates/verify/${id}`),
 

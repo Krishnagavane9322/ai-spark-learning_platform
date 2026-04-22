@@ -22,6 +22,12 @@ const userSchema = new mongoose.Schema({
     certificateId: { type: String },
     issuedAt: { type: Date, default: Date.now }
   }],
+  quizScores: [{
+    courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course" },
+    score: { type: Number },
+    passed: { type: Boolean },
+    attemptedAt: { type: Date, default: Date.now }
+  }],
   connections: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   achievements: [{
     achievementId: { type: mongoose.Schema.Types.ObjectId, ref: "Achievement" },

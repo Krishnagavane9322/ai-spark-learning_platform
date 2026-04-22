@@ -78,22 +78,27 @@ const VerifyCertificate = () => {
                 <p className="text-muted-foreground text-lg mb-4 italic font-serif">has successfully completed the course</p>
                 <h3 className="text-2xl md:text-3xl font-bold mb-12">{cert.courseTitle}</h3>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-end mt-12 pt-12 border-t border-border/40">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end mt-12 pt-12 border-t border-border/40">
                   <div className="text-left">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">Issue Date</p>
-                    <p className="font-semibold">{new Date(cert.issuedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                    <p className="font-semibold text-sm">{new Date(cert.issuedAt).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                   </div>
                   
+                  <div className="text-left">
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">Score</p>
+                    <p className="font-bold text-primary text-sm">{cert.score}% Grade</p>
+                  </div>
+
                   <div className="flex flex-col items-center">
                     <div className="p-1.5 bg-white rounded-lg shadow-inner mb-2 border border-border/20">
-                      <img src={qrUrl} alt="QR Verification" className="w-20 h-20" />
+                      <img src={qrUrl} alt="QR Verification" className="w-16 h-16" />
                     </div>
-                    <p className="text-[9px] text-muted-foreground font-bold tracking-tighter">SCAN TO VERIFY</p>
+                    <p className="text-[9px] text-muted-foreground font-bold tracking-tighter uppercase">Verified</p>
                   </div>
 
                   <div className="text-right">
                     <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold mb-1">Certificate ID</p>
-                    <p className="font-mono text-xs font-bold text-primary">{cert.certificateId}</p>
+                    <p className="font-mono text-[10px] font-bold text-primary">{cert.certificateId}</p>
                   </div>
                 </div>
               </div>
