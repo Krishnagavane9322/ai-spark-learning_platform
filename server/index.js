@@ -1,4 +1,5 @@
 require("dotenv").config();
+// Trigger restart final
 const express = require("express");
 const cors = require("cors");
 const connectDB = require("./config/db");
@@ -17,7 +18,9 @@ const paymentRoutes = require("./routes/payment");
 const messageRoutes = require("./routes/messages");
 
 const app = express();
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5001;
+console.log("Loading environment variables... PORT =", process.env.PORT);
+console.log("Server starting on PORT =", PORT);
 
 const allowedOrigins = [
   "http://localhost:8080", 
@@ -44,6 +47,13 @@ app.use(cors(corsOptions));
 // Specifically handle OPTIONS preflight requests to prevent 404s on preflights
 app.options('*', cors(corsOptions));
 app.use(express.json());
+
+// Set security headers for Google OAuth compatibility
+app.use((req, res, next) => {
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
+  // res.setHeader("Cross-Origin-Embedder-Policy", "require-corp"); // Optional, may break some images if not configured properly
+  next();
+});
 
 // Serve uploaded files (project screenshots, etc.)
 app.use("/uploads", express.static(require("path").join(__dirname, "uploads")));

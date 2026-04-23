@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, ExternalLink, Github, Linkedin, Twitter, Edit2, Plus, X, Trash2 } from "lucide-react";
+import { Copy, ExternalLink, Github, Linkedin, Twitter, Edit2, Plus, X, Trash2, Award, QrCode } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -20,6 +20,7 @@ const Portfolio = () => {
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [achievements, setAchievements] = useState<any[]>([]);
+  const [certificates, setCertificates] = useState<any[]>([]);
   
   // Editing state
   const [isEditing, setIsEditing] = useState(false);
@@ -32,6 +33,10 @@ const Portfolio = () => {
         .then(dashData => {
           setAchievements((dashData.achievements || []).filter((a: any) => a.unlocked));
         })
+        .catch(console.error);
+
+      api.getCertificates()
+        .then(setCertificates)
         .catch(console.error)
         .finally(() => setLoading(false));
     } else {

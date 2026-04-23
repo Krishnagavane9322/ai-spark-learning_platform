@@ -44,23 +44,87 @@ const VerifyCertificate = () => {
 
   return (
     <div className="min-h-screen bg-background pb-12">
+      <style>
+        {`
+          @media print {
+            @page {
+              size: A4 landscape;
+              margin: 0;
+            }
+            body {
+              background: white !important;
+              color: black !important;
+            }
+            nav, .no-print, .shield-header {
+              display: none !important;
+            }
+            .certificate-main-container {
+              padding: 0 !important;
+              margin: 0 !important;
+              width: 100vw !important;
+              height: 100vh !important;
+              display: flex !important;
+              align-items: center !important;
+              justify-content: center !important;
+              position: fixed !important;
+              top: 0 !important;
+              left: 0 !important;
+              z-index: 9999 !important;
+              background: white !important;
+            }
+            .certificate-card {
+              width: 90% !important;
+              height: 90% !important;
+              border: none !important;
+              box-shadow: none !important;
+              background: white !important;
+              margin: 0 auto !important;
+              transform: scale(1) !important;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .certificate-inner {
+              border-width: 12px !important;
+              padding: 40px !important;
+              height: 100% !important;
+              display: flex !important;
+              flex-direction: column !important;
+              justify-content: center !important;
+              background: white !important;
+              color: black !important;
+            }
+            .certificate-inner h1, 
+            .certificate-inner h3, 
+            .certificate-inner p:not(.text-primary) {
+              color: #111827 !important;
+            }
+            .certificate-inner h2 {
+              color: #06b6d4 !important; /* Force primary cyan */
+            }
+            .certificate-watermark {
+              opacity: 0.08 !important;
+            }
+            .text-muted-foreground {
+              color: #4b5563 !important;
+            }
+          }
+        `}
+      </style>
       <Navbar />
-      <div className="pt-32 container mx-auto px-4">
+      <div className="pt-32 container mx-auto px-4 certificate-main-container">
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="max-w-4xl mx-auto">
           
-          <div className="flex items-center justify-center gap-2 mb-8">
+          <div className="flex items-center justify-center gap-2 mb-8 no-print shield-header">
             <ShieldCheck className="text-green-500" size={24} />
             <h2 className="text-xl font-bold text-green-500 uppercase tracking-widest text-sm">Official Verified Credential</h2>
           </div>
-
-          <div className="glass-card p-1 md:p-2 bg-gradient-to-br from-amber-500/20 via-primary/10 to-amber-500/20 shadow-2xl overflow-hidden relative">
-            <div className="bg-card border-8 border-double border-amber-500/30 p-8 md:p-16 relative overflow-hidden text-center">
+          <div className="glass-card certificate-card p-1 md:p-2 bg-gradient-to-br from-amber-500/20 via-primary/10 to-amber-500/20 shadow-2xl overflow-hidden relative">
+            <div className="bg-card certificate-inner border-8 border-double border-amber-500/30 p-8 md:p-16 relative overflow-hidden text-center">
               
               {/* Background watermark */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-[0.03] pointer-events-none certificate-watermark">
                 <Award size={600} className="text-amber-500" />
               </div>
-
               <div className="relative z-10">
                 <div className="flex justify-center mb-8">
                   <div className="w-20 h-20 rounded-full bg-amber-500/10 flex items-center justify-center text-amber-500">
@@ -105,11 +169,18 @@ const VerifyCertificate = () => {
             </div>
           </div>
 
-          <div className="mt-12 flex flex-wrap gap-4 justify-center">
+          <div className="mt-12 flex flex-wrap gap-4 justify-center no-print">
             <button onClick={() => window.print()} className="flex items-center gap-2 bg-primary text-primary-foreground px-8 py-3 rounded-full font-bold shadow-lg shadow-primary/20 hover:scale-105 transition-transform active:scale-95">
               <Download size={20} /> Print / Save PDF
             </button>
-            <button className="flex items-center gap-2 bg-secondary text-secondary-foreground px-8 py-3 rounded-full font-bold shadow-lg shadow-secondary/20 hover:scale-105 transition-transform active:scale-95">
+            <button 
+              onClick={() => {
+                const url = encodeURIComponent(window.location.href);
+                const title = encodeURIComponent(`I just earned a certificate for "${cert.courseTitle}" on NeuralPath!`);
+                window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${url}`, '_blank');
+              }}
+              className="flex items-center gap-2 bg-secondary text-secondary-foreground px-8 py-3 rounded-full font-bold shadow-lg shadow-secondary/20 hover:scale-105 transition-transform active:scale-95"
+            >
               <Share2 size={20} /> Share to LinkedIn
             </button>
           </div>

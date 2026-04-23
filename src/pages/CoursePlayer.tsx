@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import { ChevronLeft, PlayCircle, BookOpen, Clock, CheckCircle2, Circle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ChevronLeft, PlayCircle, BookOpen, Clock, CheckCircle2, Circle, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { api } from "@/lib/api";
 
@@ -18,6 +18,7 @@ const CoursePlayer = () => {
   const [quizAnswers, setQuizAnswers] = useState<number[]>([]);
   const [quizResult, setQuizResult] = useState<any>(null);
   const [quizScore, setQuizScore] = useState<any>(null);
+  const [certId, setCertId] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -28,7 +29,9 @@ const CoursePlayer = () => {
         .then(([data, user]) => {
           setCourse(data);
           setCompletedVideos(user.completedVideos || []);
-          setIsCompleted(user.certificates?.some((c: any) => c.courseId === id));
+          const existingCert = user.certificates?.find((c: any) => c.courseId === id);
+          setIsCompleted(!!existingCert);
+          setCertId(existingCert?.certificateId || null);
           setQuizScore(user.quizScores?.find((s: any) => s.courseId === id));
           // Set the first video as active if topics exist
           if (data.topics && data.topics.length > 0) {
@@ -59,10 +62,14 @@ const CoursePlayer = () => {
 
   const handleQuizSubmit = async () => {
     if (!id) return;
-    if (quizAnswers.length < (course.quiz?.length || 0)) {
+    
+    // Ensure every question has an answer
+    const allAnswered = course.quiz?.every((_: any, idx: number) => quizAnswers[idx] !== undefined);
+    if (!allAnswered) {
       alert("Please answer all questions before submitting.");
       return;
     }
+    
     setClaiming(true);
     try {
       const res = await api.submitCourseQuiz(id, quizAnswers);
@@ -86,8 +93,9 @@ const CoursePlayer = () => {
     }
     setClaiming(true);
     try {
-      await api.completeCourse(id);
+      const res = await api.completeCourse(id);
       setIsCompleted(true);
+      setCertId(res.certificate?.certificateId || null);
     } catch (err: any) {
       alert(err.message || "Failed to claim certificate");
     } finally {
@@ -155,32 +163,38 @@ const CoursePlayer = () => {
 
                 <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
                   {!quizResult ? (
-                    course.quiz?.map((q: any, qIdx: number) => (
-                      <div key={qIdx} className="space-y-4">
-                        <h3 className="font-semibold text-lg flex gap-3">
-                          <span className="text-primary">{qIdx + 1}.</span> {q.question}
-                        </h3>
-                        <div className="grid gap-3">
-                          {q.options.map((opt: string, oIdx: number) => (
-                            <button
-                              key={oIdx}
-                              onClick={() => {
-                                const newAnswers = [...quizAnswers];
-                                newAnswers[qIdx] = oIdx;
-                                setQuizAnswers(newAnswers);
-                              }}
-                              className={`p-4 rounded-xl text-left transition-all border ${
-                                quizAnswers[qIdx] === oIdx
-                                  ? "bg-primary/20 border-primary text-foreground font-semibold"
-                                  : "bg-white/5 border-border hover:border-primary/50"
-                              }`}
-                            >
-                              {opt}
-                            </button>
-                          ))}
+                    course.quiz && course.quiz.length > 0 ? (
+                      course.quiz.map((q: any, qIdx: number) => (
+                        <div key={qIdx} className="space-y-4">
+                          <h3 className="font-semibold text-lg flex gap-3">
+                            <span className="text-primary">{qIdx + 1}.</span> {q.question}
+                          </h3>
+                          <div className="grid gap-3">
+                            {q.options.map((opt: string, oIdx: number) => (
+                              <button
+                                key={oIdx}
+                                onClick={() => {
+                                  const newAnswers = [...quizAnswers];
+                                  newAnswers[qIdx] = oIdx;
+                                  setQuizAnswers(newAnswers);
+                                }}
+                                className={`p-4 rounded-xl text-left transition-all border ${
+                                  quizAnswers[qIdx] === oIdx
+                                    ? "bg-primary/20 border-primary text-foreground font-semibold"
+                                    : "bg-white/5 border-border hover:border-primary/50"
+                                }`}
+                              >
+                                {opt}
+                              </button>
+                            ))}
+                          </div>
                         </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <p>No quiz questions available for this course yet.</p>
                       </div>
-                    ))
+                    )
                   ) : (
                     <div className="text-center py-12 space-y-6">
                       <div className={`w-24 h-24 rounded-full mx-auto flex items-center justify-center text-4xl shadow-lg ${
@@ -273,9 +287,19 @@ const CoursePlayer = () => {
                   {claiming ? "Processing..." : <>Claim Certificate 🎓</>}
                 </button>
               ) : isCompleted ? (
-                <span className="bg-green-500/20 text-green-500 border border-green-500/30 px-4 py-1.5 rounded-lg text-sm font-bold flex items-center gap-2">
-                  Completed 🎓 {quizScore?.score}%
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="bg-green-500/20 text-green-500 border border-green-500/30 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2">
+                    Completed 🎓 {quizScore?.score}%
+                  </span>
+                  {certId && (
+                    <button 
+                      onClick={() => navigate(`/verify/${certId}`)}
+                      className="bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 border border-amber-500/30 px-3 py-1.5 rounded-lg text-xs font-bold transition-all"
+                    >
+                      View Certificate
+                    </button>
+                  )}
+                </div>
               ) : null}
 
               <div className="hidden sm:flex items-center gap-3">
@@ -295,11 +319,13 @@ const CoursePlayer = () => {
               <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-5xl mx-auto flex flex-col h-full">
                 <div className="relative w-full aspect-video bg-black rounded-xl overflow-hidden shadow-2xl border border-white/10">
                   <iframe
+                    key={activeVideo.url}
                     src={activeVideo.url}
                     title={activeVideo.title}
                     className="absolute inset-0 w-full h-full"
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     allowFullScreen
+                    referrerPolicy="strict-origin-when-cross-origin"
                   ></iframe>
                 </div>
                 <div className="mt-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

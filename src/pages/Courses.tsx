@@ -330,7 +330,7 @@ const Courses = () => {
                       ))}
                     </div>
                     <div className="flex gap-4 text-sm text-muted-foreground mb-4">
-                      <span>{selectedCourse.modules} modules</span>
+                      <span>{(selectedCourse.topics?.length || selectedCourse.modules)} modules</span>
                       <span>{selectedCourse.duration}</span>
                       <span>{selectedCourse.level}</span>
                     </div>
