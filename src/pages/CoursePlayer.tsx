@@ -140,7 +140,7 @@ const CoursePlayer = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <Navbar />
-      <div className="pt-20 flex-1 flex flex-col lg:flex-row h-[calc(100vh-80px)] overflow-hidden relative">
+      <div className="pt-20 flex-1 flex flex-col lg:flex-row lg:h-[calc(100vh-80px)] lg:overflow-hidden relative">
         
         {/* Quiz Modal Overlay */}
         <AnimatePresence>
@@ -259,14 +259,15 @@ const CoursePlayer = () => {
         </AnimatePresence>
         
         {/* Main Video Area */}
-        <div className="flex-1 flex flex-col bg-black/40 overflow-y-auto">
+        <div className="flex-1 flex flex-col bg-black/40 lg:overflow-y-auto">
           <div className="p-4 flex items-center justify-between border-b border-border/40">
             <div className="flex items-center gap-4">
               <button onClick={() => navigate("/courses")} className="p-2 rounded-lg hover:bg-white/5 transition-colors text-muted-foreground hover:text-foreground">
                 <ChevronLeft size={20} />
               </button>
-              <h1 className="font-display font-semibold text-lg flex items-center gap-2">
-                <span className="text-2xl">{course.image}</span> {course.title}
+              <h1 className="font-display font-semibold text-base sm:text-lg flex items-center gap-2 min-w-0">
+                <span className="text-xl sm:text-2xl shrink-0">{course.image}</span>
+                <span className="truncate">{course.title}</span>
               </h1>
             </div>
             
@@ -362,7 +363,7 @@ const CoursePlayer = () => {
         </div>
 
         {/* Sidebar Topics */}
-        <div className="w-full lg:w-80 xl:w-96 bg-card/30 border-l border-border/40 flex flex-col h-full overflow-hidden shrink-0">
+        <div className="w-full lg:w-80 xl:w-96 bg-card/30 border-l border-border/40 flex flex-col h-auto lg:h-full lg:overflow-hidden shrink-0">
           <div className="p-4 border-b border-border/40 bg-card/50">
             <h3 className="font-semibold text-sm">Course Content</h3>
             <div className="flex items-center justify-between mt-1">

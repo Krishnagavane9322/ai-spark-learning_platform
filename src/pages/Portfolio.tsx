@@ -375,7 +375,7 @@ const Portfolio = () => {
                           <div>
                             <input type="text" value={p.tech.join(", ")} onChange={e => { const newProj = [...editData.customProjects]; newProj[i].tech = e.target.value.split(",").map((t: string) => t.trim()).filter(Boolean); setEditData({...editData, customProjects: newProj}); }} className="w-full bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="Tech Stack (comma separated, e.g. React, Node.js)" />
                           </div>
-                          <div className="flex gap-3">
+                          <div className="flex flex-col sm:flex-row gap-3">
                             <input type="text" value={p.demoUrl} onChange={e => { const newProj = [...editData.customProjects]; newProj[i].demoUrl = e.target.value; setEditData({...editData, customProjects: newProj}); }} className="flex-1 bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="Live Demo URL (optional)" />
                             <input type="text" value={p.githubUrl} onChange={e => { const newProj = [...editData.customProjects]; newProj[i].githubUrl = e.target.value; setEditData({...editData, customProjects: newProj}); }} className="flex-1 bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="GitHub URL (optional)" />
                           </div>

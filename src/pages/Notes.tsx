@@ -152,7 +152,7 @@ const Notes = () => {
             {notes.length > 0 && (
               <div className="grid md:grid-cols-5 gap-6">
                 {/* List */}
-                <div className="md:col-span-2 glass-card p-4 h-[500px] overflow-y-auto">
+                <div className="md:col-span-2 glass-card p-4 h-[300px] md:h-[500px] overflow-y-auto">
                   <h3 className="font-semibold mb-3 px-2">Your Notes ({notes.length})</h3>
                   <div className="space-y-2">
                     {notes.map(note => (
@@ -176,7 +176,7 @@ const Notes = () => {
 
                 {/* Preview */}
                 {currentNote && (
-                  <div className="md:col-span-3 glass-card flex flex-col h-[500px]">
+                  <div className="md:col-span-3 glass-card flex flex-col h-[400px] md:h-[500px]">
                     <div className="p-4 border-b border-border flex items-center justify-between">
                       <h3 className="font-semibold text-sm truncate pr-4">{currentNote.title}</h3>
                       <button onClick={handleDownload} className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">

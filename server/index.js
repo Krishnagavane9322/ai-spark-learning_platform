@@ -73,6 +73,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/chat", require("./routes/chat"));
+app.use("/api/stats", require("./routes/stats"));
 
 // Health check
 app.get("/api/health", (req, res) => {

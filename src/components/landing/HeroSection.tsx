@@ -60,14 +60,14 @@ const HeroSection = () => {
           >
             <Link
               to="/signup"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-lg hover:brightness-110 transition-all duration-300 neon-glow-cyan hover:scale-105"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 sm:px-8 sm:py-4 rounded-xl bg-primary text-primary-foreground font-semibold text-base sm:text-lg hover:brightness-110 transition-all duration-300 neon-glow-cyan hover:scale-105"
             >
               Get Started
               <ArrowRight size={20} />
             </Link>
             <Link
               to="/courses"
-              className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl glass text-foreground font-semibold text-lg hover:bg-glass-highlight/10 transition-all duration-300 hover:scale-105"
+              className="inline-flex items-center justify-center gap-2 px-6 py-3 sm:px-8 sm:py-4 rounded-xl glass text-foreground font-semibold text-base sm:text-lg hover:bg-glass-highlight/10 transition-all duration-300 hover:scale-105"
             >
               Explore Courses
             </Link>

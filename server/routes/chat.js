@@ -38,7 +38,7 @@ router.post("/send", auth, async (req, res) => {
     chat.messages.push({ role: "user", content: message || "Image analysis request" });
 
     // Prepare Gemini request
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     
     let result;
     if (image) {
@@ -54,14 +54,36 @@ router.post("/send", auth, async (req, res) => {
       result = await model.generateContent([message || "Explain this image", ...imageParts]);
     } else {
       // Text-only request with context
-      // We can pass the last few messages for context
-      const chatHistory = chat.messages.slice(-10).map(m => ({
-        role: m.role === "user" ? "user" : "model",
-        parts: [{ text: m.content }],
-      }));
+      let validHistory = [];
+      let expectedRole = "user";
+      
+      // Exclude the current message we just pushed to chat.messages
+      const historicalMessages = chat.messages.slice(0, -1);
+      
+      for (const m of historicalMessages) {
+        const role = m.role === "user" ? "user" : "model";
+        if (role === expectedRole) {
+          validHistory.push({
+            role: role,
+            parts: [{ text: m.content || "..." }]
+          });
+          expectedRole = expectedRole === "user" ? "model" : "user";
+        }
+      }
+      
+      // History must end with 'model' so that the new sendMessage ('user') is valid
+      if (validHistory.length > 0 && validHistory[validHistory.length - 1].role === "user") {
+        validHistory.pop();
+      }
+      
+      let historyToPass = validHistory.slice(-10);
+      // History must start with 'user'
+      if (historyToPass.length > 0 && historyToPass[0].role === "model") {
+        historyToPass.shift();
+      }
       
       const chatSession = model.startChat({
-        history: chatHistory.slice(0, -1), // Don't include the new user message yet as startChat expects historical context
+        history: historyToPass,
       });
       
       result = await chatSession.sendMessage(message);
@@ -91,6 +113,13 @@ router.post("/send", auth, async (req, res) => {
       });
     }
 
+    // Handle service unavailable / high demand
+    if (error.message?.includes("503") || error.status === 503 || error.message?.toLowerCase().includes("high demand")) {
+      return res.status(503).json({
+        error: "The AI model is currently experiencing high demand. Please wait a moment and try again."
+      });
+    }
+
     // Handle model not found
     if (error.message?.includes("not found") || error.status === 404) {
       return res.status(503).json({
@@ -98,7 +127,8 @@ router.post("/send", auth, async (req, res) => {
       });
     }
 
-    res.status(500).json({ error: "Failed to get AI response. Please try again." });
+    // Send the actual error message back so we can see what's going wrong
+    res.status(500).json({ error: `AI Error: ${error.message}` });
   }
 });
 

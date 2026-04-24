@@ -1,11 +1,12 @@
 import { motion, useInView } from "framer-motion";
 import { useRef, useState, useEffect } from "react";
+import { api } from "@/lib/api";
 
-const metrics = [
-  { label: "Total Learners", value: 125000, suffix: "+" },
-  { label: "Active Learners", value: 48000, suffix: "+" },
-  { label: "Courses Completed", value: 320000, suffix: "+" },
-  { label: "Projects Built", value: 89000, suffix: "+" },
+const initialMetrics = [
+  { id: "totalLearners", label: "Total Learners", value: 125000, suffix: "+" },
+  { id: "activeLearners", label: "Active Learners", value: 48000, suffix: "+" },
+  { id: "coursesCompleted", label: "Courses Completed", value: 320000, suffix: "+" },
+  { id: "projectsBuilt", label: "Projects Built", value: 89000, suffix: "+" },
 ];
 
 const Counter = ({ target, suffix }: { target: number; suffix: string }) => {
@@ -39,6 +40,26 @@ const Counter = ({ target, suffix }: { target: number; suffix: string }) => {
 };
 
 const MetricsSection = () => {
+  const [metrics, setMetrics] = useState(initialMetrics);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const stats = await api.getPlatformStats();
+        setMetrics([
+          { id: "totalLearners", label: "Total Learners", value: stats.totalLearners ?? 0, suffix: "+" },
+          { id: "activeLearners", label: "Active Learners", value: stats.activeLearners ?? 0, suffix: "+" },
+          { id: "coursesCompleted", label: "Courses Completed", value: stats.coursesCompleted ?? 0, suffix: "+" },
+          { id: "projectsBuilt", label: "Projects Built", value: stats.projectsBuilt ?? 0, suffix: "+" },
+        ]);
+      } catch (error) {
+        console.error("Failed to fetch live stats, falling back to defaults:", error);
+      }
+    };
+    
+    fetchStats();
+  }, []);
+
   return (
     <section className="py-20 relative">
       <div className="absolute inset-0 bg-gradient-to-b from-background via-primary/5 to-background" />
@@ -54,10 +75,10 @@ const MetricsSection = () => {
           </h2>
         </motion.div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {metrics.map((metric, idx) => (
             <motion.div
-              key={metric.label}
+              key={metric.id}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}

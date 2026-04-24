@@ -298,7 +298,7 @@ const AIChatbot = () => {
                   </div>
                   <div className="mt-2 flex justify-center">
                     <p className="text-[9px] text-muted-foreground/60 flex items-center gap-1">
-                      Powered by Gemini 1.5 Flash <Bot size={8} />
+                      Powered by Gemini 2.5 Flash <Bot size={8} />
                     </p>
                   </div>
                 </div>

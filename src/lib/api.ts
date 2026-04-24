@@ -211,4 +211,12 @@ export const api = {
       body: JSON.stringify({ message, image }),
     }),
   clearChatHistory: () => request<any>("/chat/clear", { method: "POST" }),
+
+  // Stats
+  getPlatformStats: () => request<{
+    totalLearners: number;
+    activeLearners: number;
+    coursesCompleted: number;
+    projectsBuilt: number;
+  }>("/stats"),
 };
