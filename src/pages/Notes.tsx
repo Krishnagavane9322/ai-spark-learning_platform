@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Upload, FileText, Download, Brain, Layers, RotateCcw, Trash2, X } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { api } from "@/lib/api";
+import { jsPDF } from "jspdf";
 
 const Notes = () => {
   const [activeTab, setActiveTab] = useState<"upload" | "flashcards" | "mindmap">("upload");
@@ -74,6 +75,34 @@ const Notes = () => {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  };
+
+  const handleDownloadPDF = () => {
+    if (!currentNote?.extractedText) return;
+    const doc = new jsPDF();
+    const title = currentNote.title || "Note";
+    
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text(title, 15, 20);
+    
+    doc.setFontSize(11);
+    doc.setFont("helvetica", "normal");
+    
+    // Split text into lines to fit within standard A4 width (~210mm) with margins
+    const splitText = doc.splitTextToSize(currentNote.extractedText, 180);
+    
+    let y = 35;
+    for (let i = 0; i < splitText.length; i++) {
+      if (y > 280) { // A4 height is ~297mm, margin at bottom
+        doc.addPage();
+        y = 20;
+      }
+      doc.text(splitText[i], 15, y);
+      y += 6; // line spacing
+    }
+    
+    doc.save(`${title}_extracted.pdf`);
   };
 
   const flashcards = currentNote?.flashcards || [];
@@ -179,9 +208,14 @@ const Notes = () => {
                   <div className="md:col-span-3 glass-card flex flex-col h-[400px] md:h-[500px]">
                     <div className="p-4 border-b border-border flex items-center justify-between">
                       <h3 className="font-semibold text-sm truncate pr-4">{currentNote.title}</h3>
-                      <button onClick={handleDownload} className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
-                        <Download size={14} /> Download (.txt)
-                      </button>
+                      <div className="flex gap-2">
+                        <button onClick={handleDownload} className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors">
+                          <Download size={14} /> (.txt)
+                        </button>
+                        <button onClick={handleDownloadPDF} className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-500/10 text-rose-500 text-xs font-semibold hover:bg-rose-500/20 transition-colors">
+                          <Download size={14} /> (.pdf)
+                        </button>
+                      </div>
                     </div>
                     <div className="p-4 flex-1 overflow-y-auto">
                       <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-wrap font-mono relative z-10">

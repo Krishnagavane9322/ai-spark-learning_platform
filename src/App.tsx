@@ -18,6 +18,7 @@ import Portfolio from "./pages/Portfolio";
 import Notes from "./pages/Notes";
 import Settings from "./pages/Settings";
 import VerifyCertificate from "./pages/VerifyCertificate";
+import AIClassroom from "./pages/AIClassroom";
 import NotFound from "./pages/NotFound";
 
 import AIChatbot from "@/components/AIChatbot";
@@ -44,6 +45,7 @@ const App = () => (
             <Route path="/peers" element={<ProtectedRoute><Peers /></ProtectedRoute>} />
             <Route path="/portfolio" element={<ProtectedRoute><Portfolio /></ProtectedRoute>} />
             <Route path="/notes" element={<ProtectedRoute><Notes /></ProtectedRoute>} />
+            <Route path="/ai-classroom" element={<ProtectedRoute><AIClassroom /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
             <Route path="/verify/:id" element={<VerifyCertificate />} />
             <Route path="*" element={<NotFound />} />

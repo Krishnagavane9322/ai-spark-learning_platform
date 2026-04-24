@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { 
   LayoutDashboard, BookOpen, Code, Users, Globe, FileText, 
-  Bell, Settings, LogOut, Menu, X, ChevronDown, Flame, Check, Trash2
+  Bell, Settings, LogOut, Menu, X, ChevronDown, Flame, Check, Trash2, BrainCircuit
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
@@ -11,6 +11,7 @@ import { api } from "@/lib/api";
 const navLinks = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/courses", label: "My Courses", icon: BookOpen },
+  { to: "/ai-classroom", label: "AI Classroom", icon: BrainCircuit },
   { to: "/projects", label: "Projects", icon: Code },
   { to: "/peers", label: "Find Peers", icon: Users },
   { to: "/portfolio", label: "Portfolio", icon: Globe },

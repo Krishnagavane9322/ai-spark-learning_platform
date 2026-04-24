@@ -219,4 +219,51 @@ export const api = {
     coursesCompleted: number;
     projectsBuilt: number;
   }>("/stats"),
+
+  // AI Classroom
+  classroomTeacher: (message: string, history?: {role: string; content: string}[]) =>
+    request<any>("/classroom/teacher", {
+      method: "POST",
+      body: JSON.stringify({ message, history }),
+    }),
+  classroomQuiz: (topic: string, difficulty?: string) =>
+    request<any>("/classroom/quiz", {
+      method: "POST",
+      body: JSON.stringify({ topic, difficulty }),
+    }),
+  classroomExplain: (topic: string) =>
+    request<any>("/classroom/explain", {
+      method: "POST",
+      body: JSON.stringify({ topic }),
+    }),
+  classroomHomework: (question: string, subject?: string) =>
+    request<any>("/classroom/homework", {
+      method: "POST",
+      body: JSON.stringify({ question, subject }),
+    }),
+  classroomCode: (data: { code?: string; question?: string; language?: string }) =>
+    request<any>("/classroom/code", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  classroomResume: (data: { targetRole: string; currentSkills?: string; experienceLevel?: string; goals?: string }) =>
+    request<any>("/classroom/resume", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  classroomAttendance: (question: string) =>
+    request<any>("/classroom/attendance", {
+      method: "POST",
+      body: JSON.stringify({ question }),
+    }),
+  classroomVoiceTutor: (transcript: string, history?: {role: string; content: string}[]) =>
+    request<any>("/classroom/voice-tutor", {
+      method: "POST",
+      body: JSON.stringify({ transcript, history }),
+    }),
+  classroomLearningPath: (data: { interests: string[]; skillLevel?: string; goals?: string; timeAvailable?: string }) =>
+    request<any>("/classroom/learning-path", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
 };

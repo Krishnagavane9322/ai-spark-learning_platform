@@ -74,6 +74,7 @@ app.use("/api/payment", paymentRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/chat", require("./routes/chat"));
 app.use("/api/stats", require("./routes/stats"));
+app.use("/api/classroom", require("./routes/classroom"));
 
 // Health check
 app.get("/api/health", (req, res) => {
