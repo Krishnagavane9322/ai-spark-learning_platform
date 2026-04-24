@@ -17,18 +17,29 @@ const generateToken = (userId) => {
 router.post("/google", async (req, res) => {
   try {
     const { credential } = req.body;
+    console.log("Google Auth Attempt: Received credential length:", credential ? credential.length : 0);
+    
     if (!credential) return res.status(400).json({ error: "Google credential required" });
 
-    const ticket = await googleClient.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
+    let ticket;
+    try {
+      ticket = await googleClient.verifyIdToken({
+        idToken: credential,
+        audience: process.env.GOOGLE_CLIENT_ID,
+      });
+    } catch (verifyError) {
+      console.error("Token verification failed:", verifyError.message);
+      return res.status(401).json({ error: "Invalid Google token: " + verifyError.message });
+    }
+
     const payload = ticket.getPayload();
     const { email, name, picture, sub: googleId } = payload;
+    console.log("Google Auth Success for:", email);
 
     let user = await User.findOne({ email });
 
     if (!user) {
+      console.log("Creating new Google user:", email);
       // Create new user from Google
       user = new User({
         name,
@@ -71,8 +82,12 @@ router.post("/google", async (req, res) => {
     const token = generateToken(user._id);
     res.json({ user, token });
   } catch (error) {
-    console.error("Google auth error:", error.message);
-    res.status(401).json({ error: "Google authentication failed" });
+    console.error("CRITICAL Google Auth error:", error);
+    res.status(500).json({ 
+      error: "Internal Server Error during Google Auth", 
+      details: error.message,
+      stack: error.stack
+    });
   }
 });
 

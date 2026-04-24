@@ -5,6 +5,7 @@ const auth = require("../middleware/auth");
 const Course = require("../models/Course");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const Transaction = require("../models/Transaction");
 
 const router = express.Router();
 
@@ -42,12 +43,23 @@ router.post("/create-order", auth, async (req, res) => {
     const order = await razorpay.orders.create({
       amount: amountInPaise,
       currency: "INR",
-      receipt: `course_${course._id}_${Date.now()}`,
+      receipt: `rcpt_${Date.now()}`,
       notes: {
         courseId: course._id.toString(),
         userId: req.userId,
         courseTitle: course.title,
       },
+    });
+
+    // Create pending transaction record
+    await Transaction.create({
+      userId: req.userId,
+      courseId: course._id,
+      orderId: order.id,
+      amount: course.price,
+      currency: "INR",
+      courseTitle: course.title,
+      status: "pending"
     });
 
     res.json({
@@ -94,6 +106,16 @@ router.post("/verify", auth, async (req, res) => {
     course.students += 1;
     await course.save();
 
+    // Update transaction record
+    await Transaction.findOneAndUpdate(
+      { orderId: razorpay_order_id },
+      { 
+        status: "completed", 
+        paymentId: razorpay_payment_id,
+        signature: razorpay_signature
+      }
+    );
+
     // Create notification
     await Notification.create({
       userId: user._id,
@@ -113,6 +135,19 @@ router.post("/verify", auth, async (req, res) => {
   } catch (error) {
     console.error("Payment verify error:", error);
     res.status(500).json({ error: "Payment verification failed" });
+  }
+});
+
+// Get User Transactions
+router.get("/transactions", auth, async (req, res) => {
+  try {
+    const transactions = await Transaction.find({ userId: req.userId })
+      .sort({ createdAt: -1 })
+      .populate("courseId", "title image");
+    res.json(transactions);
+  } catch (error) {
+    console.error("Fetch transactions error:", error);
+    res.status(500).json({ error: "Failed to fetch transactions" });
   }
 });
 

@@ -24,6 +24,7 @@ console.log("Server starting on PORT =", PORT);
 
 const allowedOrigins = [
   "http://localhost:8080", 
+  "http://localhost:8081", 
   "http://localhost:5173", 
   "http://localhost:3000",
   "https://ai-spark-learning-platform.vercel.app",
@@ -71,6 +72,7 @@ app.use("/api/assessment", assessmentRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/messages", messageRoutes);
+app.use("/api/chat", require("./routes/chat"));
 
 // Health check
 app.get("/api/health", (req, res) => {

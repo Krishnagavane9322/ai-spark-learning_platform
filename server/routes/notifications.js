@@ -1,8 +1,12 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Notification = require("../models/Notification");
 const auth = require("../middleware/auth");
 
 const router = express.Router();
+
+// Helper to validate MongoDB ObjectId
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // Get all notifications for user
 router.get("/", auth, async (req, res) => {
@@ -20,6 +24,9 @@ router.get("/", auth, async (req, res) => {
 // Mark single notification as read
 router.put("/:id/read", auth, async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid notification ID" });
+    }
     const notif = await Notification.findOneAndUpdate(
       { _id: req.params.id, userId: req.userId },
       { read: true },
@@ -28,6 +35,7 @@ router.put("/:id/read", auth, async (req, res) => {
     if (!notif) return res.status(404).json({ error: "Notification not found" });
     res.json(notif);
   } catch (error) {
+    console.error("Notification read error:", error.message);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -45,9 +53,13 @@ router.put("/read-all", auth, async (req, res) => {
 // Delete a notification
 router.delete("/:id", auth, async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid notification ID" });
+    }
     await Notification.findOneAndDelete({ _id: req.params.id, userId: req.userId });
     res.json({ message: "Notification deleted" });
   } catch (error) {
+    console.error("Notification delete error:", error.message);
     res.status(500).json({ error: "Server error" });
   }
 });

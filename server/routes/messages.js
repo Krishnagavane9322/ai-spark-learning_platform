@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Message = require("../models/Message");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
@@ -6,9 +7,16 @@ const auth = require("../middleware/auth");
 
 const router = express.Router();
 
+// Helper to validate MongoDB ObjectId
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
+
 // Get conversation with a specific peer
 router.get("/:peerId", auth, async (req, res) => {
   try {
+    if (!isValidId(req.params.peerId)) {
+      return res.status(400).json({ error: "Invalid peer ID" });
+    }
+
     const messages = await Message.find({
       $or: [
         { senderId: req.userId, receiverId: req.params.peerId },
@@ -24,6 +32,7 @@ router.get("/:peerId", auth, async (req, res) => {
 
     res.json(messages);
   } catch (error) {
+    console.error("Messages GET error:", error.message);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -31,6 +40,10 @@ router.get("/:peerId", auth, async (req, res) => {
 // Send a message
 router.post("/:peerId", auth, async (req, res) => {
   try {
+    if (!isValidId(req.params.peerId)) {
+      return res.status(400).json({ error: "Invalid peer ID" });
+    }
+
     const { text } = req.body;
     if (!text?.trim()) return res.status(400).json({ error: "Message cannot be empty" });
 

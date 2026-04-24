@@ -1,4 +1,5 @@
 const express = require("express");
+const mongoose = require("mongoose");
 const Course = require("../models/Course");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
@@ -7,6 +8,9 @@ const auth = require("../middleware/auth");
 const crypto = require("crypto");
 
 const router = express.Router();
+
+// Helper to validate MongoDB ObjectId
+const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
 // Get all courses
 router.get("/", async (req, res) => {
@@ -21,6 +25,9 @@ router.get("/", async (req, res) => {
 // Get single course
 router.get("/:id", async (req, res) => {
   try {
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid course ID" });
+    }
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ error: "Course not found" });
     res.json(course);

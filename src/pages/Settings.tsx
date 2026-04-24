@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { User, Bell, Shield, Save } from "lucide-react";
+import { User, Bell, Shield, Save, CreditCard, ExternalLink } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { useAuth } from "@/contexts/AuthContext";
 import { api } from "@/lib/api";
+import { useEffect } from "react";
 
 const Settings = () => {
   const { user, refreshUser } = useAuth();
@@ -16,6 +17,24 @@ const Settings = () => {
   const [error, setError] = useState("");
   const [passwordData, setPasswordData] = useState({ current: "", new: "" });
   const [passwordMsg, setPasswordMsg] = useState("");
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loadingTransactions, setLoadingTransactions] = useState(false);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
+
+  const fetchTransactions = async () => {
+    setLoadingTransactions(true);
+    try {
+      const data = await api.getTransactions();
+      setTransactions(data);
+    } catch (err) {
+      console.error("Failed to fetch transactions", err);
+    } finally {
+      setLoadingTransactions(false);
+    }
+  };
 
   const handleSave = async () => {
     setSaving(true);
@@ -114,6 +133,47 @@ const Settings = () => {
                 Update Password
               </button>
               {passwordMsg && <p className={`text-sm ${passwordMsg.includes("success") ? "text-neon-green" : "text-destructive"}`}>{passwordMsg}</p>}
+            </div>
+          </motion.div>
+
+          {/* Billing & Transactions */}
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card p-6">
+            <h2 className="font-display font-semibold flex items-center gap-2 mb-4"><CreditCard size={18} className="text-primary" /> Billing & Transactions</h2>
+            <div className="space-y-4">
+              {loadingTransactions ? (
+                <div className="flex justify-center py-4">
+                  <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                </div>
+              ) : transactions.length > 0 ? (
+                <div className="space-y-3">
+                  {transactions.map((tx) => (
+                    <div key={tx._id} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border/50">
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{tx.courseId?.image || "📚"}</span>
+                        <div>
+                          <p className="text-sm font-medium">{tx.courseTitle || tx.courseId?.title}</p>
+                          <p className="text-[10px] text-muted-foreground">{new Date(tx.createdAt).toLocaleDateString()} • {tx.paymentId ? "ID: " + tx.paymentId.slice(-8) : "Pending"}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-neon-violet">₹{tx.amount}</p>
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                          tx.status === "completed" ? "bg-neon-green/10 text-neon-green" : 
+                          tx.status === "failed" ? "bg-destructive/10 text-destructive" : 
+                          "bg-yellow-500/10 text-yellow-500"
+                        }`}>
+                          {tx.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-muted-foreground">
+                  <p className="text-sm">No transactions found.</p>
+                  <p className="text-xs mt-1">Enroll in a paid course to see it here.</p>
+                </div>
+              )}
             </div>
           </motion.div>
 

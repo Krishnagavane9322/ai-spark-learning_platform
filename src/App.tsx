@@ -20,6 +20,8 @@ import Settings from "./pages/Settings";
 import VerifyCertificate from "./pages/VerifyCertificate";
 import NotFound from "./pages/NotFound";
 
+import AIChatbot from "@/components/AIChatbot";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -29,6 +31,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <AIChatbot />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />

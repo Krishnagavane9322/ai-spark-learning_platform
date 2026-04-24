@@ -32,7 +32,11 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
     throw new Error("API returned invalid JSON (possibly an HTML fallback page).");
   }
 
-  if (!res.ok) throw new Error(data?.error || data?.message || `Request failed (${res.status})`);
+  if (!res.ok) {
+    const errorMsg = data?.details ? `${data.error}: ${data.details}` : (data?.error || data?.message || `Request failed (${res.status})`);
+    console.error("API Error Response:", data);
+    throw new Error(errorMsg);
+  }
   return data;
 }
 
@@ -106,6 +110,7 @@ export const api = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  getTransactions: () => request<any[]>("/payment/transactions"),
 
   // Projects
   getProjects: () => request<any[]>("/projects"),
@@ -197,4 +202,13 @@ export const api = {
     request<any>("/notifications/read-all", { method: "PUT" }),
   deleteNotification: (id: string) =>
     request<any>(`/notifications/${id}`, { method: "DELETE" }),
+
+  // Chat
+  getChatHistory: () => request<any[]>("/chat/history"),
+  sendChatMessage: (message?: string, image?: string) =>
+    request<any>("/chat/send", {
+      method: "POST",
+      body: JSON.stringify({ message, image }),
+    }),
+  clearChatHistory: () => request<any>("/chat/clear", { method: "POST" }),
 };

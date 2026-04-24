@@ -11,7 +11,9 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
     headers: {
-      "Cross-Origin-Opener-Policy": "same-origin-allow-popups",
+      "Referrer-Policy": "no-referrer-when-downgrade",
+      "Cross-Origin-Opener-Policy": "unsafe-none",
+      "Cross-Origin-Embedder-Policy": "unsafe-none",
     },
     proxy: {
       "/api": {
