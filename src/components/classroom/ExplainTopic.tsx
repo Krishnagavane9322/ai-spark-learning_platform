@@ -38,7 +38,7 @@ export default function ExplainTopic() {
   const clr = { amber: "border-amber-500/30 bg-amber-500/5 text-amber-400", orange: "border-orange-500/30 bg-orange-500/5 text-orange-400", rose: "border-rose-500/30 bg-rose-500/5 text-rose-400" };
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 max-w-3xl mx-auto space-y-6 w-full">
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-6 space-y-4">
         <h2 className="text-base font-bold text-amber-400 flex items-center gap-2"><Lightbulb size={16} /> Explain Any Topic Simply</h2>

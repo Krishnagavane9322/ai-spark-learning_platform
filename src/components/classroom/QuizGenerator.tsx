@@ -41,7 +41,7 @@ export default function QuizGenerator() {
     : 0;
 
   return (
-    <div className="p-6 max-w-3xl mx-auto space-y-6">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 max-w-3xl mx-auto space-y-6 w-full">
       {/* Generator Form */}
       <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
         className="rounded-2xl border border-violet-500/20 bg-violet-500/5 p-6 space-y-4">

@@ -205,7 +205,7 @@ const Peers = () => {
                 initial={{ opacity: 0, x: 20, md: { x: 0, scale: 0.95 } }} 
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 exit={{ opacity: 0, x: 20, md: { scale: 0.95 } }}
-                className="glass-card flex flex-col h-[600px] border-primary/20 shadow-lg shadow-primary/5 bg-card/95 backdrop-blur-xl absolute z-10 w-full lg:relative lg:w-auto"
+                className="glass-card flex flex-col h-[calc(100vh-14rem)] md:h-[600px] border-primary/20 shadow-lg shadow-primary/5 bg-card/95 backdrop-blur-xl absolute z-10 w-full lg:relative lg:w-auto"
               >
                 {/* Chat Header */}
                 <div className="p-4 border-b border-border flex items-center justify-between">

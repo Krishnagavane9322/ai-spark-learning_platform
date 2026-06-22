@@ -71,9 +71,9 @@ export default function VoiceTutor() {
   };
 
   return (
-    <div className="flex flex-col h-full max-h-[calc(100vh-9rem)]">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
         {messages.length === 0 && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
             className="flex flex-col items-center justify-center h-full gap-4 py-12 text-center">

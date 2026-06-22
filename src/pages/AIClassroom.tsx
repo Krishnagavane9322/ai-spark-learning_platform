@@ -60,7 +60,7 @@ export default function AIClassroom() {
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <div className="pt-16 flex h-screen overflow-hidden">
+      <div className="pt-16 flex h-[calc(100vh-4rem)] overflow-hidden">
 
         {/* Sidebar */}
         <aside className="w-64 shrink-0 hidden md:flex flex-col border-r border-border/50 bg-card/30 backdrop-blur-sm overflow-y-auto">
@@ -147,7 +147,7 @@ export default function AIClassroom() {
         </div>
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="flex-1 flex flex-col overflow-hidden pb-[72px] md:pb-0">
           {/* Tool Header */}
           <div className={`px-6 py-3 border-b border-border/50 flex items-center gap-3 ${c.bg}`}>
             <div className={`p-2 rounded-xl ${c.bg} border ${c.border}`}>
@@ -160,7 +160,7 @@ export default function AIClassroom() {
           </div>
 
           {/* Active Tool Panel */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 flex flex-col overflow-hidden">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTool}
@@ -168,7 +168,7 @@ export default function AIClassroom() {
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -24 }}
                 transition={{ duration: 0.22, ease: "easeOut" }}
-                className="h-full"
+                className="h-full flex flex-col overflow-hidden"
               >
                 <ActiveComponent />
               </motion.div>
