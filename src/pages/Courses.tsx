@@ -177,6 +177,9 @@ const Courses = () => {
                         <span className="flex items-center gap-1">
                           <Clock size={12} /> {course.duration}
                         </span>
+                        <span className="flex items-center gap-1">
+                          <Users size={12} /> {course.students.toLocaleString()}
+                        </span>
                         <span className="flex items-center gap-1 text-neon-cyan">
                           <Star size={12} fill="currentColor" /> {course.rating}
                         </span>

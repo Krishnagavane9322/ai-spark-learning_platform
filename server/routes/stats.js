@@ -14,7 +14,10 @@ router.get("/", async (req, res) => {
     const activeLearners = Math.floor(totalLearners * 0.8);
 
     const coursesCompleted = await Certificate.countDocuments();
-    const projectsBuilt = await Project.countDocuments({ status: "completed" });
+    
+    // Sum the length of completedProjects for all users to get the count of projects built
+    const users = await User.find({}, "completedProjects");
+    const projectsBuilt = users.reduce((acc, u) => acc + (u.completedProjects ? u.completedProjects.length : 0), 0);
     
     res.json({
       totalLearners: totalLearners,

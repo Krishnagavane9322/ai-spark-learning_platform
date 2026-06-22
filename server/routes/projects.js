@@ -29,8 +29,14 @@ const upload = multer({
 router.get("/", async (req, res) => {
   try {
     const projects = await Project.find().sort({ createdAt: -1 });
-    res.json(projects);
+    const liveProjects = await Promise.all(projects.map(async (project) => {
+      const projectObj = project.toObject();
+      projectObj.submissions = await User.countDocuments({ completedProjects: project._id });
+      return projectObj;
+    }));
+    res.json(liveProjects);
   } catch (error) {
+    console.error("Error in GET /projects:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -88,7 +94,11 @@ router.post("/:id/submit", auth, upload.single("screenshot"), async (req, res) =
       link: "/projects",
     });
 
-    res.json({ message: "Project submitted successfully!", user, project, xpEarned: 200 });
+    const submissionsCount = await User.countDocuments({ completedProjects: project._id });
+    const projectObj = project.toObject();
+    projectObj.submissions = submissionsCount;
+
+    res.json({ message: "Project submitted successfully!", user, project: projectObj, xpEarned: 200 });
   } catch (error) {
     console.error("Project submit error:", error);
     res.status(500).json({ error: error.message || "Server error" });

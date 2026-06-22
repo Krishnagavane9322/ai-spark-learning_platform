@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, PlayCircle, BookOpen, Clock, CheckCircle2, Circle, X } from "lucide-react";
+import { ChevronLeft, PlayCircle, BookOpen, Clock, CheckCircle2, Circle, X, Star } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { api } from "@/lib/api";
 
@@ -19,6 +19,9 @@ const CoursePlayer = () => {
   const [quizResult, setQuizResult] = useState<any>(null);
   const [quizScore, setQuizScore] = useState<any>(null);
   const [certId, setCertId] = useState<string | null>(null);
+  const [myRating, setMyRating] = useState<number | null>(null);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const [submittingRating, setSubmittingRating] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -33,6 +36,11 @@ const CoursePlayer = () => {
           setIsCompleted(!!existingCert);
           setCertId(existingCert?.certificateId || null);
           setQuizScore(user.quizScores?.find((s: any) => s.courseId === id));
+          
+          // Get current user's rating
+          const userRatingObj = data.ratings?.find((r: any) => r.userId === user._id);
+          setMyRating(userRatingObj ? userRatingObj.rating : null);
+          
           // Set the first video as active if topics exist
           if (data.topics && data.topics.length > 0) {
             const firstTopicWithVideos = data.topics.find((t: any) => t.videos && t.videos.length > 0);
@@ -45,6 +53,20 @@ const CoursePlayer = () => {
         .finally(() => setLoading(false));
     }
   }, [id]);
+
+  const handleRateCourse = async (ratingVal: number) => {
+    if (!id) return;
+    setSubmittingRating(true);
+    try {
+      const res = await api.rateCourse(id, ratingVal);
+      setMyRating(ratingVal);
+      setCourse(res.course);
+    } catch (err: any) {
+      alert("Failed to submit rating: " + err.message);
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
 
   const toggleProgress = async (videoUrl: string) => {
     if (!id) return;
@@ -288,7 +310,7 @@ const CoursePlayer = () => {
                   {claiming ? "Processing..." : <>Claim Certificate 🎓</>}
                 </button>
               ) : isCompleted ? (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3 flex-wrap">
                   <span className="bg-green-500/20 text-green-500 border border-green-500/30 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2">
                     Completed 🎓 {quizScore?.score}%
                   </span>
@@ -300,6 +322,37 @@ const CoursePlayer = () => {
                       View Certificate
                     </button>
                   )}
+                  
+                  {/* Dynamic Rating Widget */}
+                  <div className="flex items-center gap-2 bg-white/5 border border-border/30 px-3 py-1 rounded-lg">
+                    <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Rate Course:</span>
+                    <div className="flex items-center">
+                      {[1, 2, 3, 4, 5].map((star) => {
+                        const active = hoverRating !== null ? star <= hoverRating : star <= (myRating || 0);
+                        return (
+                          <button
+                            key={star}
+                            disabled={submittingRating}
+                            onMouseEnter={() => setHoverRating(star)}
+                            onMouseLeave={() => setHoverRating(null)}
+                            onClick={() => handleRateCourse(star)}
+                            className="p-0.5 text-amber-400 hover:scale-125 transition-transform disabled:opacity-50"
+                          >
+                            <Star
+                              size={14}
+                              fill={active ? "currentColor" : "none"}
+                              className="stroke-amber-400"
+                            />
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {myRating !== null && (
+                      <span className="text-[10px] text-neon-cyan font-bold">
+                        ({myRating}★)
+                      </span>
+                    )}
+                  </div>
                 </div>
               ) : null}
 

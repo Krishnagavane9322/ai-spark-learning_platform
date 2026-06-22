@@ -12,12 +12,57 @@ const router = express.Router();
 // Helper to validate MongoDB ObjectId
 const isValidId = (id) => mongoose.Types.ObjectId.isValid(id);
 
+// Helper to sum video durations like "10:00", "25:00" and return something like "1h 45m" or "55m"
+const calculateLiveDuration = (topics) => {
+  if (!topics || topics.length === 0) return "0 mins";
+  let totalSeconds = 0;
+  topics.forEach((t) => {
+    if (t.videos) {
+      t.videos.forEach((v) => {
+        if (v.duration) {
+          const parts = v.duration.split(":");
+          if (parts.length === 2) {
+            totalSeconds += parseInt(parts[0], 10) * 60 + parseInt(parts[1], 10);
+          } else if (parts.length === 1) {
+            totalSeconds += parseInt(parts[0], 10) * 60;
+          }
+        }
+      });
+    }
+  });
+
+  const totalMinutes = Math.round(totalSeconds / 60);
+  if (totalMinutes === 0) return "0 mins";
+  if (totalMinutes < 60) return `${totalMinutes} mins`;
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+};
+
+// Helper to construct course data dynamically from MongoDB
+const getLiveCourseData = async (course) => {
+  const courseObj = course.toObject();
+  courseObj.duration = calculateLiveDuration(course.topics);
+  
+  // Count actual users enrolled in the database
+  courseObj.students = await User.countDocuments({ enrolledCourses: course._id });
+  
+  // Calculate average rating from ratings array, fallback to default seed rating if none
+  if (course.ratings && course.ratings.length > 0) {
+    const sum = course.ratings.reduce((acc, r) => acc + r.rating, 0);
+    courseObj.rating = Math.round((sum / course.ratings.length) * 10) / 10;
+  }
+  return courseObj;
+};
+
 // Get all courses
 router.get("/", async (req, res) => {
   try {
     const courses = await Course.find().sort({ createdAt: -1 });
-    res.json(courses);
+    const liveCourses = await Promise.all(courses.map(c => getLiveCourseData(c)));
+    res.json(liveCourses);
   } catch (error) {
+    console.error("Error in GET /courses:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
@@ -30,9 +75,57 @@ router.get("/:id", async (req, res) => {
     }
     const course = await Course.findById(req.params.id);
     if (!course) return res.status(404).json({ error: "Course not found" });
-    res.json(course);
+    const liveCourse = await getLiveCourseData(course);
+    res.json(liveCourse);
   } catch (error) {
+    console.error("Error in GET /courses/:id:", error);
     res.status(500).json({ error: "Server error" });
+  }
+});
+
+// Submit/update rating for a course
+router.post("/:id/rate", auth, async (req, res) => {
+  try {
+    const { rating } = req.body;
+    if (rating === undefined || rating < 1 || rating > 5) {
+      return res.status(400).json({ error: "Rating must be a number between 1 and 5" });
+    }
+
+    if (!isValidId(req.params.id)) {
+      return res.status(400).json({ error: "Invalid course ID" });
+    }
+
+    const course = await Course.findById(req.params.id);
+    if (!course) return res.status(404).json({ error: "Course not found" });
+
+    // Check if user is enrolled
+    const user = await User.findById(req.userId);
+    if (!user.enrolledCourses.includes(course._id)) {
+      return res.status(403).json({ error: "You must be enrolled in this course to rate it" });
+    }
+
+    // Add or update user's rating in ratings array
+    const existingRatingIndex = course.ratings.findIndex(
+      (r) => r.userId.toString() === req.userId.toString()
+    );
+
+    if (existingRatingIndex > -1) {
+      course.ratings[existingRatingIndex].rating = rating;
+    } else {
+      course.ratings.push({ userId: req.userId, rating });
+    }
+
+    // Recalculate average rating field
+    const sum = course.ratings.reduce((acc, r) => acc + r.rating, 0);
+    course.rating = Math.round((sum / course.ratings.length) * 10) / 10;
+
+    await course.save();
+
+    const liveCourse = await getLiveCourseData(course);
+    res.json({ message: "Rating submitted successfully", course: liveCourse });
+  } catch (error) {
+    console.error("Rating error:", error);
+    res.status(500).json({ error: "Server error during rating" });
   }
 });
 

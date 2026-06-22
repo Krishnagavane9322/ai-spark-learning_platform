@@ -67,7 +67,7 @@ const courses = [
     ]
   },
   { 
-    title: "AI & Machine Learning Mastery", category: "AI/ML", level: "Advanced", duration: "16 weeks", students: 8930, rating: 4.9, price: 3999, image: "🤖", modules: 2, tags: ["Python", "TensorFlow", "PyTorch"],
+    title: "AI & Machine Learning Mastery", category: "AI/ML", level: "Advanced", duration: "16 weeks", students: 8930, rating: 4.9, price: 1, image: "🤖", modules: 2, tags: ["Python", "TensorFlow", "PyTorch"],
     quiz: [
       { question: "Which of the following is a supervised learning algorithm?", options: ["K-Means", "PCA", "Linear Regression", "DBSCAN"], correctOption: 2 },
       { question: "What is the activation function typically used in the output layer for binary classification?", options: ["ReLU", "Sigmoid", "Tanh", "Softmax"], correctOption: 1 },
@@ -117,7 +117,7 @@ const courses = [
     ]
   },
   { 
-    title: "Cloud Computing with AWS", category: "DevOps", level: "Intermediate", duration: "10 weeks", students: 6750, rating: 4.6, price: 2999, image: "☁️", modules: 2, tags: ["AWS", "Docker", "Kubernetes"],
+    title: "Cloud Computing with AWS", category: "DevOps", level: "Intermediate", duration: "10 weeks", students: 6750, rating: 4.6, price: 1, image: "☁️", modules: 2, tags: ["AWS", "Docker", "Kubernetes"],
     quiz: [
       { question: "What does AWS stand for?", options: ["Advanced Web Services", "Amazon Web Services", "Alpha Web Systems", "All Web Solutions"], correctOption: 1 },
       { question: "Which AWS service is used for scalable virtual servers?", options: ["S3", "Lambda", "EC2", "RDS"], correctOption: 2 },
@@ -141,7 +141,7 @@ const courses = [
     ]
   },
   { 
-    title: "Mobile App Development", category: "Development", level: "Intermediate", duration: "14 weeks", students: 11200, rating: 4.8, price: 1999, image: "📱", modules: 2, tags: ["React Native", "Flutter", "Firebase"],
+    title: "Mobile App Development", category: "Development", level: "Intermediate", duration: "14 weeks", students: 11200, rating: 4.8, price: 1, image: "📱", modules: 2, tags: ["React Native", "Flutter", "Firebase"],
     quiz: [
       { question: "Which framework is developed by Google for mobile apps?", options: ["React Native", "Ionic", "Flutter", "Xamarin"], correctOption: 2 },
       { question: "In React Native, which component is used to display text?", options: ["<Paragraph>", "<div>", "<Text>", "<span>"], correctOption: 2 },
@@ -191,12 +191,12 @@ const courses = [
 ];
 
 const projects = [
-  { title: "Personal Portfolio Website", difficulty: "Beginner", tech: ["HTML", "CSS", "JS"], description: "Build a responsive portfolio to showcase your work", submissions: 4200 },
-  { title: "E-Commerce Dashboard", difficulty: "Intermediate", tech: ["React", "Tailwind", "Chart.js"], description: "Create a full-featured admin dashboard", submissions: 2800 },
-  { title: "Real-Time Chat Application", difficulty: "Intermediate", tech: ["React", "Socket.io", "Node.js"], description: "Build a chat app with real-time messaging", submissions: 1900 },
-  { title: "AI Image Generator", difficulty: "Advanced", tech: ["Python", "FastAPI", "Stable Diffusion"], description: "Create an AI-powered image generation tool", submissions: 890 },
-  { title: "Task Management System", difficulty: "Beginner", tech: ["React", "LocalStorage", "CSS"], description: "Build a Kanban-style task manager", submissions: 5600 },
-  { title: "Social Media Analytics", difficulty: "Advanced", tech: ["React", "D3.js", "Python"], description: "Analyze and visualize social media data", submissions: 720 },
+  { title: "Personal Portfolio Website", difficulty: "Beginner", tech: ["HTML", "CSS", "JS"], description: "Build a responsive portfolio to showcase your work", submissions: 0 },
+  { title: "E-Commerce Dashboard", difficulty: "Intermediate", tech: ["React", "Tailwind", "Chart.js"], description: "Create a full-featured admin dashboard", submissions: 0 },
+  { title: "Real-Time Chat Application", difficulty: "Intermediate", tech: ["React", "Socket.io", "Node.js"], description: "Build a chat app with real-time messaging", submissions: 0 },
+  { title: "AI Image Generator", difficulty: "Advanced", tech: ["Python", "FastAPI", "Stable Diffusion"], description: "Create an AI-powered image generation tool", submissions: 0 },
+  { title: "Task Management System", difficulty: "Beginner", tech: ["React", "LocalStorage", "CSS"], description: "Build a Kanban-style task manager", submissions: 0 },
+  { title: "Social Media Analytics", difficulty: "Advanced", tech: ["React", "D3.js", "Python"], description: "Analyze and visualize social media data", submissions: 0 },
 ];
 
 const achievements = [
@@ -225,23 +225,28 @@ async function seed() {
     await Achievement.deleteMany({});
 
     console.log("Seeding courses...");
-    await Course.insertMany(courses);
-    console.log(`  ✓ ${courses.length} courses inserted`);
+    const seededCourses = await Course.insertMany(courses);
+    console.log(`  ✓ ${seededCourses.length} courses inserted`);
 
     console.log("Seeding projects...");
-    await Project.insertMany(projects);
-    console.log(`  ✓ ${projects.length} projects inserted`);
+    const seededProjects = await Project.insertMany(projects);
+    console.log(`  ✓ ${seededProjects.length} projects inserted`);
 
     console.log("Seeding achievements...");
     await Achievement.insertMany(achievements);
     console.log(`  ✓ ${achievements.length} achievements inserted`);
 
     console.log("Seeding sample peers...");
+    // Clear existing sample peers specifically so they get recreated with completed projects
+    await User.deleteMany({ email: { $in: samplePeers.map(p => p.email) } });
+    
+    const createdPeers = [];
     for (const peerData of samplePeers) {
-      const existing = await User.findOne({ email: peerData.email });
-      if (!existing) {
-        const peer = new User({
+      let peer = await User.findOne({ email: peerData.email });
+      if (!peer) {
+        peer = new User({
           ...peerData,
+          completedProjects: [], // Peers start with 0 completed projects
           roadmapProgress: [
             { stageId: 1, status: "completed" },
             { stageId: 2, status: "completed" },
@@ -264,8 +269,40 @@ async function seed() {
         });
         await peer.save();
       }
+      createdPeers.push(peer);
     }
-    console.log(`  ✓ ${samplePeers.length} sample peers created`);
+    console.log(`  ✓ ${createdPeers.length} sample peers created`);
+
+    // Enroll peers in courses and add reviews/ratings to make it look active
+    console.log("Seeding live ratings and enrollments...");
+    for (const course of seededCourses) {
+      // Pick 2-4 random peers to enroll in this course
+      const shuffledPeers = [...createdPeers].sort(() => 0.5 - Math.random());
+      const enrollCount = Math.floor(Math.random() * 3) + 2; // enroll 2 to 4 peers
+      const enrolledPeersForCourse = shuffledPeers.slice(0, enrollCount);
+
+      for (const peer of enrolledPeersForCourse) {
+        if (!peer.enrolledCourses.includes(course._id)) {
+          peer.enrolledCourses.push(course._id);
+          await peer.save();
+        }
+
+        // Add rating for this course from the peer (3-5 stars)
+        const ratingVal = Math.floor(Math.random() * 3) + 3; // 3, 4, or 5
+        course.ratings.push({
+          userId: peer._id,
+          rating: ratingVal
+        });
+      }
+
+      // Calculate initial rating average
+      if (course.ratings.length > 0) {
+        const sum = course.ratings.reduce((acc, r) => acc + r.rating, 0);
+        course.rating = Math.round((sum / course.ratings.length) * 10) / 10;
+      }
+      await course.save();
+    }
+    console.log("  ✓ Course enrollments and ratings seeded");
 
     console.log("\n✅ Database seeded successfully!");
     process.exit(0);

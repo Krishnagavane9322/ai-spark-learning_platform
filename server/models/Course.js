@@ -12,6 +12,10 @@ const courseSchema = new mongoose.Schema({
   }],
   students: { type: Number, default: 0 },
   rating: { type: Number, default: 0 },
+  ratings: [{
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    rating: { type: Number, required: true, min: 1, max: 5 }
+  }],
   price: { type: Number, default: 0 },
   image: { type: String, default: "📚" },
   modules: { type: Number, default: 0 },
