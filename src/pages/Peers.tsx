@@ -202,9 +202,9 @@ const Peers = () => {
           <AnimatePresence>
             {chatOpen && (
               <motion.div 
-                initial={{ opacity: 0, x: 20, md: { x: 0, scale: 0.95 } }} 
+                initial={{ opacity: 0, x: 20 }} 
                 animate={{ opacity: 1, x: 0, scale: 1 }}
-                exit={{ opacity: 0, x: 20, md: { scale: 0.95 } }}
+                exit={{ opacity: 0, x: 20 }}
                 className="glass-card flex flex-col h-[calc(100vh-14rem)] md:h-[600px] border-primary/20 shadow-lg shadow-primary/5 bg-card/95 backdrop-blur-xl absolute z-10 w-full lg:relative lg:w-auto"
               >
                 {/* Chat Header */}
