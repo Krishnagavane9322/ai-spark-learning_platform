@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const Certificate = require("../models/Certificate");
+const Achievement = require("../models/Achievement");
 const auth = require("../middleware/auth");
 const updateStreak = require("../utils/streak");
 
@@ -231,6 +233,55 @@ router.put("/profile", auth, async (req, res) => {
   } catch (error) {
     console.error("Profile update error:", error);
     res.status(500).json({ error: "Server error during profile update" });
+  }
+});
+
+// Get a public user portfolio by username slug
+router.get("/portfolio/:slug", async (req, res) => {
+  try {
+    const { slug } = req.params;
+    // Map slug back to a potential name regex pattern (case-insensitive, allows space or hyphen for dashes)
+    const escaped = slug.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const nameRegex = new RegExp("^" + escaped.replace(/\\-/g, "[\\s-]") + "$", "i");
+
+    const user = await User.findOne({ name: nameRegex });
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    // Get user's certificates
+    const certificates = await Certificate.find({ userId: user._id }).sort({ issuedAt: -1 });
+
+    // Get all achievements to check lock/unlock status
+    const achievements = await Achievement.find();
+    const userAchievementIds = user.achievements.map(a => a.achievementId?.toString());
+    const achievementList = achievements.map(a => ({
+      ...a.toJSON(),
+      unlocked: userAchievementIds.includes(a._id.toString())
+    }));
+    
+    // Only return unlocked achievements for public view
+    const unlockedAchievements = achievementList.filter(a => a.unlocked);
+
+    // Build the public user object (privacy protection)
+    const publicUser = {
+      name: user.name,
+      avatar: user.avatar,
+      level: user.level,
+      bio: user.bio,
+      socialLinks: user.socialLinks,
+      skills: user.skills,
+      customProjects: user.customProjects
+    };
+
+    res.json({
+      user: publicUser,
+      certificates,
+      achievements: unlockedAchievements
+    });
+  } catch (error) {
+    console.error("Public portfolio fetch error:", error);
+    res.status(500).json({ error: "Server error" });
   }
 });
 

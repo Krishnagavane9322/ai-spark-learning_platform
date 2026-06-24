@@ -67,6 +67,7 @@ export const api = {
     }),
 
   getMe: () => request<any>("/auth/me"),
+  getPublicPortfolio: (username: string) => request<any>(`/auth/portfolio/${username}`),
   updatePortfolio: (data: any) => 
     request<any>("/auth/profile", {
       method: "PUT",

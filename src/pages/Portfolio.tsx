@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Copy, ExternalLink, Github, Linkedin, Twitter, Edit2, Plus, X, Trash2, Award, QrCode } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -16,11 +17,15 @@ const itemVariants = {
 };
 
 const Portfolio = () => {
+  const { username } = useParams<{ username: string }>();
+  const isPublic = !!username;
+
   const { user, refreshUser } = useAuth();
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
   const [achievements, setAchievements] = useState<any[]>([]);
   const [certificates, setCertificates] = useState<any[]>([]);
+  const [publicUser, setPublicUser] = useState<any>(null);
   
   // Editing state
   const [isEditing, setIsEditing] = useState(false);
@@ -28,21 +33,37 @@ const Portfolio = () => {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      api.getDashboard()
-        .then(dashData => {
-          setAchievements((dashData.achievements || []).filter((a: any) => a.unlocked));
+    if (isPublic) {
+      setLoading(true);
+      api.getPublicPortfolio(username!)
+        .then(data => {
+          setPublicUser(data.user);
+          setAchievements(data.achievements || []);
+          setCertificates(data.certificates || []);
         })
-        .catch(console.error);
-
-      api.getCertificates()
-        .then(setCertificates)
-        .catch(console.error)
+        .catch(err => {
+          console.error("Failed to fetch public portfolio:", err);
+          setPublicUser(null);
+        })
         .finally(() => setLoading(false));
     } else {
-      setLoading(false);
+      if (user) {
+        setLoading(true);
+        api.getDashboard()
+          .then(dashData => {
+            setAchievements((dashData.achievements || []).filter((a: any) => a.unlocked));
+          })
+          .catch(console.error);
+
+        api.getCertificates()
+          .then(setCertificates)
+          .catch(console.error)
+          .finally(() => setLoading(false));
+      } else {
+        setLoading(false);
+      }
     }
-  }, [user]);
+  }, [user, username, isPublic]);
 
   const openEditor = () => {
     setEditData({
@@ -73,7 +94,8 @@ const Portfolio = () => {
   };
 
   const copyLink = () => {
-    const url = `https://neuralpath.ai/u/${user?.name?.toLowerCase().replace(/\s+/g, "-") || "user"}`;
+    const slug = displayUser?.name?.toLowerCase().replace(/\s+/g, "-") || "user";
+    const url = `${window.location.origin}/u/${slug}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
@@ -90,10 +112,26 @@ const Portfolio = () => {
     );
   }
 
-  const skills = user?.skills || [];
-  const customProjects = user?.customProjects || [];
-  const portfolioSlug = user?.name?.toLowerCase().replace(/\s+/g, "-") || "user";
-  const { github, twitter, linkedin } = user?.socialLinks || {};
+  const displayUser = isPublic ? publicUser : user;
+  const skills = displayUser?.skills || [];
+  const customProjects = displayUser?.customProjects || [];
+  const portfolioSlug = displayUser?.name?.toLowerCase().replace(/\s+/g, "-") || "user";
+  const { github, twitter, linkedin } = displayUser?.socialLinks || {};
+
+  if (!loading && isPublic && !publicUser) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="pt-20 pb-12 container mx-auto flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+          <h1 className="text-3xl font-display font-bold mb-4">Portfolio Not Found</h1>
+          <p className="text-muted-foreground mb-6">The learning portfolio you are looking for does not exist or has been removed.</p>
+          <a href="/" className="px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-bold hover:brightness-110 shadow-lg shadow-primary/20 transition-all">
+            Go to Home
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background relative">
@@ -104,13 +142,15 @@ const Portfolio = () => {
           
           {/* Top Share Bar */}
           <motion.div variants={itemVariants} className="glass-card p-3 flex flex-wrap gap-4 items-center justify-between">
-            <span className="text-sm text-muted-foreground truncate flex-1 min-w-[200px]">neuralpath.ai/u/{portfolioSlug}</span>
+            <span className="text-sm text-muted-foreground truncate flex-1 min-w-[200px]">{window.location.host}/u/{portfolioSlug}</span>
             <div className="flex gap-2">
-              <button 
-                onClick={openEditor} 
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-secondary/20 text-secondary-foreground text-sm font-semibold hover:bg-secondary/30 transition-colors">
-                <Edit2 size={14} /> Edit Profile
-              </button>
+              {!isPublic && (
+                <button 
+                  onClick={openEditor} 
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-secondary/20 text-secondary-foreground text-sm font-semibold hover:bg-secondary/30 transition-colors">
+                  <Edit2 size={14} /> Edit Profile
+                </button>
+              )}
               <button onClick={copyLink} className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-semibold shadow hover:brightness-110 transition-all">
                 <Copy size={14} /> {copied ? "Copied!" : "Share Link"}
               </button>
@@ -121,12 +161,12 @@ const Portfolio = () => {
           <motion.div variants={itemVariants} className="glass-card p-8 md:p-12 text-center neon-glow-cyan relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary via-secondary to-primary opacity-50"></div>
             <div className="w-28 h-28 rounded-full bg-gradient-to-br from-primary/80 to-secondary/80 mx-auto flex items-center justify-center text-5xl mb-6 shadow-2xl shadow-primary/20 backdrop-blur-sm border-4 border-background/50">
-              {user?.avatar || "👨‍💻"}
+              {displayUser?.avatar || "👨‍💻"}
             </div>
-            <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight mb-2">{user?.name || "User"}</h1>
-            <p className="text-primary/80 font-medium mb-4">Level {user?.level || 1} Developer</p>
+            <h1 className="text-4xl md:text-5xl font-display font-bold tracking-tight mb-2">{displayUser?.name || "User"}</h1>
+            <p className="text-primary/80 font-medium mb-4">Level {displayUser?.level || 1} Developer</p>
             <p className="text-muted-foreground max-w-xl mx-auto mb-6 leading-relaxed">
-              {user?.bio || "Full-stack Developer passionate about AI and Web technologies. Always learning, always building."}
+              {displayUser?.bio || "Full-stack Developer passionate about AI and Web technologies. Always learning, always building."}
             </p>
             
             <div className="flex justify-center gap-4">
@@ -264,7 +304,9 @@ const Portfolio = () => {
                 ) : (
                   <div className="text-center py-8 glass rounded-xl border-dashed">
                     <p className="text-sm text-muted-foreground">No projects added yet.</p>
-                    <button onClick={openEditor} className="mt-2 text-primary text-sm font-semibold hover:underline">Add a Project</button>
+                    {!isPublic && (
+                      <button onClick={openEditor} className="mt-2 text-primary text-sm font-semibold hover:underline">Add a Project</button>
+                    )}
                   </div>
                 )}
               </motion.div>
