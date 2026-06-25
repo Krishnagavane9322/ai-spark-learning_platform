@@ -5,6 +5,58 @@ const auth = require("../middleware/auth");
 
 const router = express.Router();
 
+// Helper: check and grant achievements, returns array of newly granted achievement titles
+async function checkAndGrantAchievements(user) {
+  const Achievement = require("../models/Achievement");
+  const Notification = require("../models/Notification");
+  const Certificate = require("../models/Certificate");
+
+  const achievements = await Achievement.find();
+  const unlocked = new Set(user.achievements.map(a => a.achievementId?.toString()));
+  const granted = [];
+
+  const tryGrant = async (title) => {
+    const ach = achievements.find(a => a.title === title);
+    if (!ach || unlocked.has(ach._id.toString())) return;
+    user.achievements.push({ achievementId: ach._id, unlockedAt: new Date() });
+    user.xp = (user.xp || 0) + 50;
+    unlocked.add(ach._id.toString());
+    granted.push(title);
+    await Notification.create({
+      userId: user._id,
+      type: "achievement",
+      title: `Achievement Unlocked: ${title}! 🏆`,
+      message: `You earned the "${title}" badge! +50 XP`,
+      icon: ach.icon || "🏆",
+      link: "/dashboard"
+    });
+  };
+
+  // First Steps — completed assessment
+  if (user.assessmentCompleted) await tryGrant("First Steps");
+
+  // Week Warrior — 7-day streak
+  if ((user.streak || 0) >= 7) await tryGrant("Week Warrior");
+
+  // Project Pro — 5+ completed projects
+  if ((user.completedProjects?.length || 0) >= 5) await tryGrant("Project Pro");
+
+  // Social Butterfly — 10+ connections
+  if ((user.connections?.length || 0) >= 10) await tryGrant("Social Butterfly");
+
+  // AI Explorer — completed ALL steps & interested in AI/ML
+  const allDone = user.personalizedPath?.length > 0 &&
+    user.personalizedPath.every(s => s.status === "completed");
+  if (allDone && user.interests?.includes("AI & Machine Learning")) {
+    await tryGrant("AI Explorer");
+  }
+  // Generic path completion achievement for any interest
+  if (allDone) await tryGrant("First Steps");
+
+  if (granted.length > 0) user.markModified("achievements");
+  return granted;
+}
+
 // Learning path templates based on interests and skill levels
 // resources: { name, url, type } — type: "docs"|"video"|"course"|"practice"|"book"
 const pathDatabase = {
@@ -228,9 +280,11 @@ router.put("/step/:stepId/complete", auth, async (req, res) => {
     };
     const relatedSkills = categorySkillMap[step.category] || [];
     for (const skillName of relatedSkills) {
-      const skill = user.skills.find(s => s.name === skillName);
-      if (skill) {
-        skill.level = Math.min(100, skill.level + 5);
+      const skillIndex = user.skills.findIndex(s => s.name === skillName);
+      if (skillIndex !== -1) {
+        user.skills[skillIndex].level = Math.min(100, user.skills[skillIndex].level + 5);
+      } else {
+        user.skills.push({ name: skillName, level: 5 });
       }
     }
     user.markModified("skills");
@@ -254,9 +308,13 @@ router.put("/step/:stepId/complete", auth, async (req, res) => {
 
     user.markModified("personalizedPath");
     user.markModified("weeklyActivity");
+
+    // Check and grant achievements
+    const newAchievements = await checkAndGrantAchievements(user);
+
     await user.save();
 
-    // Create notification
+    // Create step completion notification
     const Notification = require("../models/Notification");
     await Notification.create({
       userId: user._id,
@@ -277,7 +335,8 @@ router.put("/step/:stepId/complete", auth, async (req, res) => {
       completedCount,
       totalCount,
       totalXP: user.xp,
-      personalizedPath: user.personalizedPath
+      personalizedPath: user.personalizedPath,
+      newAchievements
     });
   } catch (error) {
     console.error("Step complete error:", error);

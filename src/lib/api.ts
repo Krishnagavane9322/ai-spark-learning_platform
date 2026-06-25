@@ -76,6 +76,14 @@ export const api = {
 
   // Dashboard
   getDashboard: () => request<any>("/dashboard"),
+  getLeaderboard: (sortBy?: "xp" | "streak") =>
+    request<{
+      leaderboard: any[];
+      currentUserRank: number;
+      currentUser: any;
+      gapToNext: number;
+      nextUser: string | null;
+    }>(`/dashboard/leaderboard?sortBy=${sortBy || "xp"}`),
 
   // Courses
   getCourses: () => request<any[]>("/courses"),

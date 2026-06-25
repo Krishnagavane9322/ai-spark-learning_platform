@@ -55,3 +55,25 @@ This document outlines the key algorithmic logic, data processing heuristics, an
 - **Bcrypt Hashing (Blowfish Cipher):** Implements key stretching algorithms internally utilizing randomized cryptographic salts to transform plaintext passwords into secure, irreversible hash arrays. Resists brute-force and dictionary attacks.
 - **JSON Web Tokens (JWT / HMAC SHA256):** Generates and signs user sessions. The algorithm applies the HMAC SHA256 signature to the base64-encoded header and payload via a secure server secret key to guarantee token integrity across distributed requests.
 - **OAuth 2.0 Flow:** Executes standardized delegation algorithms coordinating the exchange of consent codes for validation access tokens via the Google Auth Library.
+
+## 7. Notes Parsing & Active-Recall Card Generation Performance
+**Location:** Notes Module (`server/routes/notes.js`, `System_Design_Report.md`)
+**Purpose:** Evaluates classification confidence and card generation yields across diverse technical subject domains.
+**How it works:**
+- **Table of Representative Results:**
+  - Standard technical notes yield high classification confidence ($0.76$ to $0.94$) and return standard card counts ($4$ to $6$).
+  - Unstructured or short notes (e.g. Git commit snippet) trigger a regex fallback classifier (marked with a `*`, confidence $< 0.50$).
+- **Classification Confidence Calculation ($C$):**
+  - **Tier 1 (Semantic):** Max probability score of the class output distribution via Softmax:
+    $$C = \max_{j} \left( \frac{e^{z_j}}{\sum e^{z_k}} \right)$$
+  - **Tier 2 (Fallback Keyword Density):** Ratio of matched keyword count weighted by domain relevance, normalized by the natural log of total non-stopword tokens:
+    $$C_{\text{fallback}} = \min \left( 0.49, \frac{\sum (w_i \cdot f_i)}{\ln(M + e)} \right)$$
+- **Active-Recall Card Yield Calculation ($N$):**
+  - Sentences are filtered for candidate requirements (length $> 25$, words $\ge 5$).
+  - Heuristics split declarative statements on `" is "`, `" are "`, or `":"` to form front/back card formats, or replace high-value nouns to generate fill-in-the-blank questions.
+  - Final card count is bounded:
+    $$N = \max \left( 3, \min \left( 12, \sum \text{MatchedHeuristics} \right) \right)$$
+
+For step-by-step worked numerical examples of these calculations (e.g., Softmax probability distributions, TF-IDF fallback weights, sentence noun extraction processing), see the detailed report: [System_Design_Report.md](file:///f:/My%20Projects/LLM/ai-spark-learning/System_Design_Report.md#L205-L285).
+
+

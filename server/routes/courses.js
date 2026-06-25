@@ -263,6 +263,41 @@ router.post("/:id/complete", auth, async (req, res) => {
       issuedAt: certificate.issuedAt
     });
     user.xp += 500; // Large XP reward for finishing a course
+    
+    // Check and grant achievements
+    const Achievement = require("../models/Achievement");
+    const achievements = await Achievement.find();
+    const unlocked = new Set(user.achievements.map(a => a.achievementId?.toString()));
+
+    const tryGrant = async (title, xp = 50) => {
+      const ach = achievements.find(a => a.title === title);
+      if (!ach || unlocked.has(ach._id.toString())) return;
+      user.achievements.push({ achievementId: ach._id, unlockedAt: new Date() });
+      user.xp += xp;
+      unlocked.add(ach._id.toString());
+      await Notification.create({
+        userId: user._id,
+        type: "achievement",
+        title: `Achievement Unlocked: ${title}! 🏆`,
+        message: `You earned the "${title}" badge! +${xp} XP`,
+        icon: ach.icon || "🏆",
+        link: "/portfolio"
+      });
+    };
+
+    // First Steps — has at least 1 cert now
+    await tryGrant("First Steps");
+
+    // Week Warrior — streak >= 7
+    if ((user.streak || 0) >= 7) await tryGrant("Week Warrior");
+
+    // Project Pro — 5+ completed projects
+    if ((user.completedProjects?.length || 0) >= 5) await tryGrant("Project Pro");
+
+    // Social Butterfly — 10+ connections
+    if ((user.connections?.length || 0) >= 10) await tryGrant("Social Butterfly");
+
+    user.markModified("achievements");
     await user.save();
 
     // Notification

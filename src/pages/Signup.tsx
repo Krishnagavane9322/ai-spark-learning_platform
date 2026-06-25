@@ -11,7 +11,7 @@ declare global {
   }
 }
 
-const GOOGLE_CLIENT_ID = "422960419904-b7ia5git50cnekbrf4b4av59f3u64lei.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "422960419904-b7ia5git50cnekbrf4b4av59f3u64lei.apps.googleusercontent.com";
 
 const Signup = () => {
   const [name, setName] = useState("");

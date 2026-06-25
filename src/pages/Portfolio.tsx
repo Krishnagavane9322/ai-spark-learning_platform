@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Copy, ExternalLink, Github, Linkedin, Twitter, Edit2, Plus, X, Trash2, Award, QrCode } from "lucide-react";
 import Navbar from "@/components/Navbar";
@@ -19,6 +19,7 @@ const itemVariants = {
 const Portfolio = () => {
   const { username } = useParams<{ username: string }>();
   const isPublic = !!username;
+  const navigate = useNavigate();
 
   const { user, refreshUser } = useAuth();
   const [copied, setCopied] = useState(false);
@@ -31,6 +32,8 @@ const Portfolio = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<any>({});
   const [saving, setSaving] = useState(false);
+
+  const [pathProgress, setPathProgress] = useState<{ completed: number; total: number; steps: any[] }>({ completed: 0, total: 0, steps: [] });
 
   useEffect(() => {
     if (isPublic) {
@@ -52,6 +55,9 @@ const Portfolio = () => {
         api.getDashboard()
           .then(dashData => {
             setAchievements((dashData.achievements || []).filter((a: any) => a.unlocked));
+            const path = dashData.roadmap || [];
+            const completed = path.filter((s: any) => s.status === "completed").length;
+            setPathProgress({ completed, total: path.length, steps: path });
           })
           .catch(console.error);
 
@@ -73,8 +79,8 @@ const Portfolio = () => {
         twitter: user?.socialLinks?.twitter || "", 
         linkedin: user?.socialLinks?.linkedin || "" 
       },
-      skills: user?.skills?.length ? [...user.skills] : [{ name: "JavaScript", level: 50 }],
-      customProjects: user?.customProjects?.length ? [...user.customProjects] : []
+      skills: user?.skills?.length ? user.skills.map(s => ({ ...s })) : [{ name: "JavaScript", level: 50 }],
+      customProjects: user?.customProjects?.length ? user.customProjects.map(p => ({ ...p, tech: [...p.tech] })) : []
     });
     setIsEditing(true);
   };
@@ -235,7 +241,12 @@ const Portfolio = () => {
                 {certificates.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {certificates.map((cert: any) => (
-                      <motion.div key={cert.certificateId} whileHover={{ y: -3 }} className="relative glass border border-amber-500/30 p-4 rounded-xl overflow-hidden group">
+                      <motion.div
+                        key={cert.certificateId}
+                        whileHover={{ y: -3 }}
+                        onClick={() => navigate(`/verify/${cert.certificateId}`)}
+                        className="relative glass border border-amber-500/30 p-4 rounded-xl overflow-hidden group cursor-pointer hover:border-amber-500/50 transition-colors"
+                      >
                         <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
                           <Award size={80} className="text-amber-500" />
                         </div>
@@ -245,14 +256,19 @@ const Portfolio = () => {
                           </div>
                           <div className="flex-1 min-w-0">
                             <h3 className="font-bold text-sm truncate">{cert.courseTitle}</h3>
-                            <p className="text-[10px] text-muted-foreground mb-2">ID: {cert.certificateId}</p>
+                            <div className="flex items-center gap-2 mt-0.5 mb-2">
+                              <p className="text-[10px] text-muted-foreground font-mono">{cert.certificateId}</p>
+                              {cert.score != null && (
+                                <span className="text-[9px] font-bold bg-primary/10 text-primary px-1.5 py-0.5 rounded-full">{cert.score}%</span>
+                              )}
+                            </div>
                             <div className="flex items-center justify-between">
                               <span className="text-[10px] font-medium text-muted-foreground">{new Date(cert.issuedAt).toLocaleDateString()}</span>
-                              <button 
-                                onClick={() => window.open(`/verify/${cert.certificateId}`, '_blank')}
-                                className="text-[10px] font-bold text-amber-500 hover:underline flex items-center gap-1"
+                              <button
+                                onClick={(e) => { e.stopPropagation(); navigate(`/verify/${cert.certificateId}`); }}
+                                className="text-[10px] font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 px-2 py-1 rounded-full transition-colors"
                               >
-                                <QrCode size={12} /> Verify
+                                <ExternalLink size={10} /> View
                               </button>
                             </div>
                           </div>
@@ -268,6 +284,47 @@ const Portfolio = () => {
                 )}
               </motion.div>
               
+              {/* Learning Path Progress — own profile only, when path data exists */}
+              {!isPublic && pathProgress.total > 0 && (
+                <motion.div variants={itemVariants} className="glass-card p-6">
+                  <h2 className="font-display font-bold text-xl mb-2 flex items-center gap-2">
+                    <span className="text-primary">🗺️</span> Learning Path
+                  </h2>
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-1 h-3 rounded-full bg-muted overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.round((pathProgress.completed / pathProgress.total) * 100)}%` }}
+                        transition={{ duration: 1, ease: "easeOut" }}
+                        className="h-full rounded-full bg-gradient-to-r from-primary to-secondary"
+                      />
+                    </div>
+                    <span className="text-sm font-bold text-primary whitespace-nowrap">
+                      {pathProgress.completed}/{pathProgress.total} steps
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {pathProgress.steps.map((step: any, i: number) => (
+                      <div key={i} className={`flex items-center gap-2.5 p-2.5 rounded-lg border text-sm transition-colors ${
+                        step.status === "completed"
+                          ? "bg-primary/10 border-primary/30 text-foreground"
+                          : step.status === "current"
+                          ? "bg-secondary/10 border-secondary/30 text-foreground"
+                          : "bg-muted/30 border-border/30 text-muted-foreground"
+                      }`}>
+                        <span className="text-base shrink-0">
+                          {step.status === "completed" ? "✅" : step.status === "current" ? "▶️" : "🔒"}
+                        </span>
+                        <div className="min-w-0">
+                          <p className="font-semibold truncate leading-tight">{step.title}</p>
+                          <p className="text-[10px] opacity-70 uppercase tracking-wide">{step.category} · {step.duration}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
               {/* Projects */}
               <motion.div variants={itemVariants} className="glass-card p-6">
                 <h2 className="font-display font-bold text-xl mb-5 flex items-center gap-2"><span className="text-primary">🚀</span> Featured Projects</h2>
@@ -387,9 +444,40 @@ const Portfolio = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {(Array.isArray(editData.skills) ? editData.skills : []).map((s: any, i: number) => (
                       <div key={i} className="flex gap-2 items-center bg-white/5 p-2 rounded-lg border border-border/30">
-                        <input type="text" value={s.name} onChange={e => { const newSkills = [...editData.skills]; newSkills[i].name = e.target.value; setEditData({...editData, skills: newSkills}); }} className="flex-1 bg-transparent text-sm focus:outline-none px-2" placeholder="Skill name" />
-                        <input type="number" min="0" max="100" value={s.level} onChange={e => { const newSkills = [...editData.skills]; newSkills[i].level = Number(e.target.value); setEditData({...editData, skills: newSkills}); }} className="w-16 bg-background/50 border border-border rounded text-sm p-1 text-center" />
-                        <button onClick={() => { const newSkills = editData.skills.filter((_: any, idx: number) => idx !== i); setEditData({...editData, skills: newSkills}); }} className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"><Trash2 size={14} /></button>
+                        <input
+                          type="text"
+                          value={s.name}
+                          onChange={e => {
+                            const newSkills = editData.skills.map((skill: any, idx: number) =>
+                              idx === i ? { ...skill, name: e.target.value } : skill
+                            );
+                            setEditData({ ...editData, skills: newSkills });
+                          }}
+                          className="flex-1 bg-transparent text-sm focus:outline-none px-2"
+                          placeholder="Skill name"
+                        />
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          value={s.level}
+                          onChange={e => {
+                            const newSkills = editData.skills.map((skill: any, idx: number) =>
+                              idx === i ? { ...skill, level: Number(e.target.value) } : skill
+                            );
+                            setEditData({ ...editData, skills: newSkills });
+                          }}
+                          className="w-16 bg-background/50 border border-border rounded text-sm p-1 text-center"
+                        />
+                        <button
+                          onClick={() => {
+                            const newSkills = editData.skills.filter((_: any, idx: number) => idx !== i);
+                            setEditData({ ...editData, skills: newSkills });
+                          }}
+                          className="p-1.5 text-muted-foreground hover:text-destructive transition-colors"
+                        >
+                          <Trash2 size={14} />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -406,20 +494,83 @@ const Portfolio = () => {
                   <div className="space-y-4">
                     {(Array.isArray(editData.customProjects) ? editData.customProjects : []).map((p: any, i: number) => (
                       <div key={i} className="bg-white/5 p-4 rounded-xl border border-border/50 relative">
-                        <button onClick={() => { const newProj = editData.customProjects.filter((_: any, idx: number) => idx !== i); setEditData({...editData, customProjects: newProj}); }} className="absolute top-4 right-4 text-muted-foreground hover:text-destructive"><Trash2 size={16} /></button>
+                        <button
+                          onClick={() => {
+                            const newProj = editData.customProjects.filter((_: any, idx: number) => idx !== i);
+                            setEditData({ ...editData, customProjects: newProj });
+                          }}
+                          className="absolute top-4 right-4 text-muted-foreground hover:text-destructive"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                         <div className="space-y-3 pr-8">
                           <div>
-                            <input type="text" value={p.title} onChange={e => { const newProj = [...editData.customProjects]; newProj[i].title = e.target.value; setEditData({...editData, customProjects: newProj}); }} className="w-full bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-bold" placeholder="Project Title" />
+                            <input
+                              type="text"
+                              value={p.title}
+                              onChange={e => {
+                                const newProj = editData.customProjects.map((proj: any, idx: number) =>
+                                  idx === i ? { ...proj, title: e.target.value } : proj
+                                );
+                                setEditData({ ...editData, customProjects: newProj });
+                              }}
+                              className="w-full bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 font-bold"
+                              placeholder="Project Title"
+                            />
                           </div>
                           <div>
-                            <textarea value={p.description} onChange={e => { const newProj = [...editData.customProjects]; newProj[i].description = e.target.value; setEditData({...editData, customProjects: newProj}); }} className="w-full bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="Project Description" rows={2} />
+                            <textarea
+                              value={p.description}
+                              onChange={e => {
+                                const newProj = editData.customProjects.map((proj: any, idx: number) =>
+                                  idx === i ? { ...proj, description: e.target.value } : proj
+                                );
+                                setEditData({ ...editData, customProjects: newProj });
+                              }}
+                              className="w-full bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              placeholder="Project Description"
+                              rows={2}
+                            />
                           </div>
                           <div>
-                            <input type="text" value={p.tech.join(", ")} onChange={e => { const newProj = [...editData.customProjects]; newProj[i].tech = e.target.value.split(",").map((t: string) => t.trim()).filter(Boolean); setEditData({...editData, customProjects: newProj}); }} className="w-full bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="Tech Stack (comma separated, e.g. React, Node.js)" />
+                            <input
+                              type="text"
+                              value={p.tech.join(", ")}
+                              onChange={e => {
+                                const newProj = editData.customProjects.map((proj: any, idx: number) =>
+                                  idx === i ? { ...proj, tech: e.target.value.split(",").map((t: string) => t.trim()).filter(Boolean) } : proj
+                                );
+                                setEditData({ ...editData, customProjects: newProj });
+                              }}
+                              className="w-full bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              placeholder="Tech Stack (comma separated, e.g. React, Node.js)"
+                            />
                           </div>
                           <div className="flex flex-col sm:flex-row gap-3">
-                            <input type="text" value={p.demoUrl} onChange={e => { const newProj = [...editData.customProjects]; newProj[i].demoUrl = e.target.value; setEditData({...editData, customProjects: newProj}); }} className="flex-1 bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="Live Demo URL (optional)" />
-                            <input type="text" value={p.githubUrl} onChange={e => { const newProj = [...editData.customProjects]; newProj[i].githubUrl = e.target.value; setEditData({...editData, customProjects: newProj}); }} className="flex-1 bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" placeholder="GitHub URL (optional)" />
+                            <input
+                              type="text"
+                              value={p.demoUrl}
+                              onChange={e => {
+                                const newProj = editData.customProjects.map((proj: any, idx: number) =>
+                                  idx === i ? { ...proj, demoUrl: e.target.value } : proj
+                                );
+                                setEditData({ ...editData, customProjects: newProj });
+                              }}
+                              className="flex-1 bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              placeholder="Live Demo URL (optional)"
+                            />
+                            <input
+                              type="text"
+                              value={p.githubUrl}
+                              onChange={e => {
+                                const newProj = editData.customProjects.map((proj: any, idx: number) =>
+                                  idx === i ? { ...proj, githubUrl: e.target.value } : proj
+                                );
+                                setEditData({ ...editData, customProjects: newProj });
+                              }}
+                              className="flex-1 bg-background/50 border border-border rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                              placeholder="GitHub URL (optional)"
+                            />
                           </div>
                         </div>
                       </div>

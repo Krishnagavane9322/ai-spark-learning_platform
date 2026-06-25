@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Flame, Zap, Trophy, Target, Clock, Lock, CheckCircle2, Play, Sparkles, BookOpen, ExternalLink, ChevronRight, ChevronDown, Code2 } from "lucide-react";
+import { Flame, Zap, Trophy, Target, Clock, Lock, CheckCircle2, Play, Sparkles, BookOpen, ExternalLink, ChevronRight, ChevronDown, Code2, Crown, TrendingUp } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import AssessmentQuiz from "@/components/AssessmentQuiz";
 import StepQuiz from "@/components/StepQuiz";
@@ -18,11 +18,33 @@ const Dashboard = () => {
   const [stepQuizTarget, setStepQuizTarget] = useState<any | null>(null);
   const [toast, setToast] = useState<{ message: string; xp: number } | null>(null);
 
+  // Leaderboard state
+  const [leaderboardType, setLeaderboardType] = useState<"xp" | "streak">("xp");
+  const [leaderboardData, setLeaderboardData] = useState<any>(null);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+
+  const fetchLeaderboard = async (type: "xp" | "streak") => {
+    setLeaderboardLoading(true);
+    try {
+      const data = await api.getLeaderboard(type);
+      setLeaderboardData(data);
+    } catch (err) {
+      console.error("Leaderboard fetch error:", err);
+    } finally {
+      setLeaderboardLoading(false);
+    }
+  };
+
   const fetchData = async () => {
     try {
-      const [dash, assessment] = await Promise.all([api.getDashboard(), api.getAssessmentStatus()]);
+      const [dash, assessment, leaderboard] = await Promise.all([
+        api.getDashboard(),
+        api.getAssessmentStatus(),
+        api.getLeaderboard(leaderboardType),
+      ]);
       setDashData(dash);
       setAssessmentData(assessment);
+      setLeaderboardData(leaderboard);
       if (!assessment.completed) setShowQuiz(true);
     } catch (err) {
       console.error(err);
@@ -36,6 +58,13 @@ const Dashboard = () => {
     // Log activity on dashboard visit
     api.logActivity(0.5).catch(() => {});
   }, []);
+
+  // Refetch when leaderboard sorting type changes
+  useEffect(() => {
+    if (!loading) {
+      fetchLeaderboard(leaderboardType);
+    }
+  }, [leaderboardType]);
 
   const handleAssessmentComplete = async (result: any) => {
     setShowQuiz(false);
@@ -72,6 +101,9 @@ const Dashboard = () => {
       const dash = await api.getDashboard();
       setDashData(dash);
       await refreshUser();
+      
+      // Update leaderboard live
+      fetchLeaderboard(leaderboardType);
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -152,7 +184,7 @@ const Dashboard = () => {
 
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Personalized Learning Path */}
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-2 glass-card p-6">
+          <motion.div id="personalized-path" initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} className="lg:col-span-2 glass-card p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display font-bold text-xl flex items-center gap-2">
                 <Sparkles size={20} className="text-primary" /> Your Personalized Path
@@ -397,6 +429,319 @@ const Dashboard = () => {
               <p className="text-[10px] text-muted-foreground mt-2 text-center">
                 {(Array.isArray(weeklyActivity) ? weeklyActivity : []).reduce((sum: number, d: any) => sum + d.hours, 0).toFixed(1)}h total this week
               </p>
+            </motion.div>
+
+            {/* Leaderboard */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.05 }}
+              className="glass-card p-6 relative overflow-hidden"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-5">
+                <div className="flex items-center gap-2">
+                  <Trophy size={20} className="text-neon-pink animate-pulse shrink-0" />
+                  <h3 className="font-display font-semibold text-lg">Leaderboard</h3>
+                  {/* Live Status indicator */}
+                  <span className="flex items-center gap-1.5 ml-2 bg-emerald-500/10 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full border border-emerald-500/20 shrink-0">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500"></span>
+                    </span>
+                    LIVE
+                  </span>
+                </div>
+
+                {/* Filter pill tabs */}
+                <div className="flex bg-muted/50 p-0.5 rounded-lg border border-border/40 shrink-0">
+                  <button
+                    onClick={() => setLeaderboardType("xp")}
+                    className={`text-[10px] px-2.5 py-1 rounded-md transition-all font-semibold uppercase tracking-wider ${
+                      leaderboardType === "xp"
+                        ? "bg-background text-foreground shadow-sm font-bold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    XP
+                  </button>
+                  <button
+                    onClick={() => setLeaderboardType("streak")}
+                    className={`text-[10px] px-2.5 py-1 rounded-md transition-all font-semibold uppercase tracking-wider ${
+                      leaderboardType === "streak"
+                        ? "bg-background text-foreground shadow-sm font-bold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Streak
+                  </button>
+                </div>
+              </div>
+
+              {leaderboardLoading && !leaderboardData ? (
+                <div className="flex flex-col items-center justify-center py-12">
+                  <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin mb-2" />
+                  <span className="text-xs text-muted-foreground">Syncing live standings...</span>
+                </div>
+              ) : leaderboardData?.leaderboard ? (
+                <div className="space-y-5">
+                  {/* Podium (Top 3) */}
+                  <div className="grid grid-cols-3 gap-2 pt-2 items-end justify-center border-b border-border/30 pb-4">
+                    {/* Rank 2 (Left) */}
+                    {leaderboardData.leaderboard[1] ? (
+                      <div className="flex flex-col items-center text-center">
+                        <div className="relative mb-1 group">
+                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-slate-400">
+                            <Crown size={12} className="rotate-[-15deg]" />
+                          </div>
+                          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-500 border border-border text-[10px] font-bold text-white shadow-sm">
+                            2
+                          </span>
+                          <span className="text-3xl p-1.5 inline-block rounded-full bg-slate-500/10 border border-slate-400/30 group-hover:scale-105 transition-transform duration-300">
+                            {leaderboardData.leaderboard[1].avatar || "👨‍💻"}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-semibold truncate w-full max-w-[65px] block mt-1">
+                          {leaderboardData.leaderboard[1].name.split(" ")[0]}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground mt-0.5 bg-slate-500/10 px-1.5 py-0.5 rounded-full font-medium">
+                          Lv.{leaderboardData.leaderboard[1].level || 1}
+                        </span>
+                        <span className="text-[10px] font-bold text-slate-300 mt-1 flex items-center gap-0.5">
+                          {leaderboardType === "xp" ? (
+                            <>
+                              <Zap size={9} className="text-neon-violet shrink-0" />
+                              {leaderboardData.leaderboard[1].xp.toLocaleString()}
+                            </>
+                          ) : (
+                            <>
+                              <Flame size={9} className="text-neon-cyan shrink-0" />
+                              {leaderboardData.leaderboard[1].streak}d
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center opacity-30">
+                        <div className="w-10 h-10 rounded-full border border-dashed border-muted flex items-center justify-center text-xs">-</div>
+                      </div>
+                    )}
+
+                    {/* Rank 1 (Middle) */}
+                    {leaderboardData.leaderboard[0] ? (
+                      <div className="flex flex-col items-center text-center -translate-y-1">
+                        <div className="relative mb-2 group">
+                          <div className="absolute -top-4 left-1/2 -translate-x-1/2 text-amber-400 animate-bounce">
+                            <Crown size={16} />
+                          </div>
+                          <span className="absolute -bottom-1 -right-1 flex h-5.5 w-5.5 items-center justify-center rounded-full bg-amber-500 border-2 border-amber-400 text-[10px] font-bold text-black shadow-md">
+                            1
+                          </span>
+                          <div className="p-1 rounded-full bg-gradient-to-tr from-amber-500 via-amber-300 to-amber-600 shadow-lg group-hover:scale-105 transition-transform duration-300">
+                            <span className="text-4xl p-2 inline-block rounded-full bg-background border border-amber-300/40">
+                              {leaderboardData.leaderboard[0].avatar || "👑"}
+                            </span>
+                          </div>
+                        </div>
+                        <span className="text-xs font-bold truncate w-full max-w-[70px] block text-amber-300">
+                          {leaderboardData.leaderboard[0].name.split(" ")[0]}
+                        </span>
+                        <span className="text-[9px] text-amber-400 mt-0.5 bg-amber-400/10 px-1.5 py-0.5 rounded-full font-medium border border-amber-400/20">
+                          Lv.{leaderboardData.leaderboard[0].level || 1}
+                        </span>
+                        <span className="text-xs font-bold text-amber-300 mt-1 flex items-center gap-0.5 justify-center">
+                          {leaderboardType === "xp" ? (
+                            <>
+                              <Zap size={10} className="text-amber-400 shrink-0" />
+                              {leaderboardData.leaderboard[0].xp.toLocaleString()}
+                            </>
+                          ) : (
+                            <>
+                              <Flame size={10} className="text-amber-400 shrink-0" />
+                              {leaderboardData.leaderboard[0].streak}d
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center opacity-30">
+                        <div className="w-12 h-12 rounded-full border border-dashed border-muted flex items-center justify-center text-xs">-</div>
+                      </div>
+                    )}
+
+                    {/* Rank 3 (Right) */}
+                    {leaderboardData.leaderboard[2] ? (
+                      <div className="flex flex-col items-center text-center">
+                        <div className="relative mb-1 group">
+                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 text-amber-700">
+                            <Crown size={12} className="rotate-[15deg]" />
+                          </div>
+                          <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-700 border border-border text-[10px] font-bold text-white shadow-sm">
+                            3
+                          </span>
+                          <span className="text-3xl p-1.5 inline-block rounded-full bg-amber-800/10 border border-amber-700/30 group-hover:scale-105 transition-transform duration-300">
+                            {leaderboardData.leaderboard[2].avatar || "🧑‍💻"}
+                          </span>
+                        </div>
+                        <span className="text-[11px] font-semibold truncate w-full max-w-[65px] block mt-1">
+                          {leaderboardData.leaderboard[2].name.split(" ")[0]}
+                        </span>
+                        <span className="text-[9px] text-muted-foreground mt-0.5 bg-amber-700/10 px-1.5 py-0.5 rounded-full font-medium">
+                          Lv.{leaderboardData.leaderboard[2].level || 1}
+                        </span>
+                        <span className="text-[10px] font-bold text-amber-600 mt-1 flex items-center gap-0.5">
+                          {leaderboardType === "xp" ? (
+                            <>
+                              <Zap size={9} className="text-neon-pink shrink-0" />
+                              {leaderboardData.leaderboard[2].xp.toLocaleString()}
+                            </>
+                          ) : (
+                            <>
+                              <Flame size={9} className="text-neon-pink shrink-0" />
+                              {leaderboardData.leaderboard[2].streak}d
+                            </>
+                          )}
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center opacity-30">
+                        <div className="w-10 h-10 rounded-full border border-dashed border-muted flex items-center justify-center text-xs">-</div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* List (Positions 4-10) */}
+                  <div className="space-y-1.5 max-h-[220px] overflow-y-auto pr-1 custom-scrollbar">
+                    {leaderboardData.leaderboard.length > 3 ? (
+                      leaderboardData.leaderboard.slice(3).map((item: any, idx: number) => {
+                        const absoluteRank = idx + 4;
+                        const isCurrentUser = item._id === user?._id;
+                        return (
+                          <div
+                            key={item._id}
+                            className={`flex items-center gap-3 p-2 rounded-xl border transition-all ${
+                              isCurrentUser
+                                ? "bg-primary/10 border-primary/40 shadow-sm"
+                                : "bg-white/2 hover:bg-white/5 border-transparent"
+                            }`}
+                          >
+                            <span className={`text-xs font-semibold w-5 text-center ${
+                              isCurrentUser ? "text-primary" : "text-muted-foreground"
+                            }`}>
+                              {absoluteRank}
+                            </span>
+                            <span className="text-xl shrink-0">{item.avatar || "👤"}</span>
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-xs font-semibold truncate ${isCurrentUser ? "text-primary font-bold" : ""}`}>
+                                {item.name} {isCurrentUser && "(You)"}
+                              </p>
+                              <p className="text-[9px] text-muted-foreground">Level {item.level || 1}</p>
+                            </div>
+                            <span className="text-xs font-bold flex items-center gap-1 shrink-0 text-foreground">
+                              {leaderboardType === "xp" ? (
+                                <>
+                                  <Zap size={10} className="text-neon-violet" />
+                                  {(item.xp || 0).toLocaleString()}
+                                </>
+                              ) : (
+                                <>
+                                  <Flame size={10} className="text-neon-cyan" />
+                                  {item.streak || 0}d
+                                </>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <p className="text-center py-4 text-xs text-muted-foreground">No other runners yet</p>
+                    )}
+                  </div>
+
+                  {/* User Progress Panel */}
+                  {leaderboardData.currentUser && (
+                    <div className="mt-4 pt-4 border-t border-border/30">
+                      <div className="glass-card bg-gradient-to-br from-primary/5 via-transparent to-neon-pink/5 p-3.5 rounded-xl border border-primary/20 flex flex-col gap-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">Your Rank:</span>
+                            <span className="text-sm font-bold text-foreground flex items-center gap-1">
+                              <span className="bg-primary/20 text-primary text-xs px-2 py-0.5 rounded-full font-extrabold">
+                                #{leaderboardData.currentUserRank}
+                              </span>
+                            </span>
+                          </div>
+                          <span className="text-xs font-bold text-muted-foreground flex items-center gap-1">
+                            {leaderboardType === "xp" ? (
+                              <>
+                                <Zap size={11} className="text-neon-violet" />
+                                {(leaderboardData.currentUser.xp || 0).toLocaleString()} XP
+                              </>
+                            ) : (
+                              <>
+                                <Flame size={11} className="text-neon-cyan" />
+                                {leaderboardData.currentUser.streak || 0} day streak
+                              </>
+                            )}
+                          </span>
+                        </div>
+
+                        {leaderboardData.currentUserRank > 1 && leaderboardData.nextUser ? (
+                          <div className="text-[11px] text-muted-foreground flex flex-col gap-1">
+                            <div className="flex items-center justify-between">
+                              <span>
+                                Needs <strong className="text-foreground">{leaderboardType === "xp" ? `${(leaderboardData.gapToNext || 0).toLocaleString()} XP` : `${leaderboardData.gapToNext || 0} days`}</strong> to pass <strong className="text-primary">{leaderboardData.nextUser.split(" ")[0]}</strong>
+                              </span>
+                              <span className="font-semibold text-primary">#{leaderboardData.currentUserRank - 1}</span>
+                            </div>
+                            {/* Progress bar to next user */}
+                            <div className="w-full h-1.5 rounded-full bg-muted overflow-hidden mt-1.5">
+                              <div
+                                className="h-full rounded-full bg-gradient-to-r from-primary to-neon-pink"
+                                style={{
+                                  width: `${Math.min(
+                                    100,
+                                    Math.max(
+                                      10,
+                                      ((leaderboardData.currentUser[leaderboardType] || 0) /
+                                        ((leaderboardData.currentUser[leaderboardType] || 0) + (leaderboardData.gapToNext || 1))) *
+                                        100
+                                    )
+                                  )}%`
+                                }}
+                              />
+                            </div>
+                          </div>
+                        ) : leaderboardData.currentUserRank === 1 ? (
+                          <div className="text-[11px] text-amber-400 font-medium flex items-center gap-1.5 mt-1">
+                            <Crown size={12} className="animate-bounce shrink-0" />
+                            You are leading the board! Outstanding! 👑
+                          </div>
+                        ) : null}
+
+                        {/* Earn XP / Boost Rank Link */}
+                        <div className="mt-1">
+                          <button
+                            onClick={() => {
+                              const element = document.getElementById("personalized-path");
+                              if (element) {
+                                element.scrollIntoView({ behavior: "smooth" });
+                              }
+                            }}
+                            className="w-full py-1.5 rounded-lg bg-primary/20 text-primary border border-primary/30 text-[11px] font-bold flex items-center justify-center gap-1 hover:bg-primary hover:text-primary-foreground transition-all duration-300"
+                          >
+                            <TrendingUp size={11} /> Boost Your Rank Now
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="text-center py-6 text-xs text-muted-foreground">
+                  No leaderboard data available.
+                </div>
+              )}
             </motion.div>
 
             {/* Achievements */}

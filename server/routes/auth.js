@@ -35,7 +35,13 @@ router.post("/google", async (req, res) => {
     }
 
     const payload = ticket.getPayload();
+    if (!payload) {
+      return res.status(400).json({ error: "Invalid Google token payload" });
+    }
     const { email, name, picture, sub: googleId } = payload;
+    if (!email) {
+      return res.status(400).json({ error: "Google account must have an email address" });
+    }
     console.log("Google Auth Success for:", email);
 
     let user = await User.findOne({ email });
