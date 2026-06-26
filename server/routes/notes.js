@@ -4,9 +4,10 @@ const User = require("../models/User");
 const auth = require("../middleware/auth");
 const multer = require("multer");
 const tesseract = require("tesseract.js");
-const pdfParse = require("pdf-parse");
+const { PDFParse } = require("pdf-parse");
 const fs = require("fs-extra");
 const path = require("path");
+const { callNvidiaAI, transcribeImageAI } = require("../utils/ai");
 
 const router = express.Router();
 
@@ -16,8 +17,8 @@ fs.ensureDirSync(uploadsDir);
 
 const upload = multer({ dest: uploadsDir });
 
-// Helper to generate flashcards from text
-function generateFlashcards(text) {
+// Local heuristic fallback for flashcard generation
+function generateFlashcardsHeuristic(text) {
   if (!text || text.trim().length < 20) {
     return [{ front: "Not enough text extracted", back: "Please upload a clearer document with more readable text." }];
   }
@@ -103,8 +104,43 @@ function generateFlashcards(text) {
   return cards;
 }
 
-// Helper to generate mindmap from text
-function generateMindmap(text) {
+// AI-powered flashcard generation with heuristic fallback
+async function generateFlashcards(text) {
+  if (!text || text.trim().length < 20) {
+    return [{ front: "Not enough text extracted", back: "Please upload a clearer document with more readable text." }];
+  }
+
+  try {
+    const systemPrompt = `You are a study assistant AI.
+Given a text document, generate high-quality, clear, and educational study flashcards.
+Always return ONLY valid JSON as a JSON array of objects in this exact format (no extra text, no markdown block):
+[
+  {
+    "front": "Question or term to define",
+    "back": "Answer or description"
+  }
+]
+Generate between 5 to 10 flashcards that cover the most important concepts, facts, formulas, or definitions in the text.
+Ensure accuracy is 100% based on the provided text. Do not invent details.`;
+
+    const response = await callNvidiaAI(systemPrompt, `Document text:\n${text.substring(0, 10000)}`);
+    const jsonMatch = response.match(/\[[\s\S]*\]/);
+    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : response);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.map(card => ({
+        front: String(card.front || card.question || "").trim(),
+        back: String(card.back || card.answer || "").trim()
+      })).filter(card => card.front && card.back);
+    }
+  } catch (error) {
+    console.error("AI flashcard generation failed, falling back to heuristics:", error);
+  }
+
+  return generateFlashcardsHeuristic(text);
+}
+
+// Local heuristic fallback for mindmap generation
+function generateMindmapHeuristic(text) {
   if (!text || text.trim().length < 20) {
     return { center: "Document", branches: ["Upload a clearer file", "More text needed"] };
   }
@@ -112,16 +148,13 @@ function generateMindmap(text) {
   const lines = text.replace(/\r/g, "").split("\n").map(l => l.trim()).filter(l => l.length > 0);
   const sentences = text.replace(/\r/g, "").split(/(?<=[.!?])\s+/).map(s => s.trim()).filter(s => s.length > 20);
 
-  // Extract meaningful 2-4 word phrases (noun-like phrases)
   const stopWords = new Set(["the", "a", "an", "is", "are", "was", "were", "be", "been", "has", "have", "had", "do", "does", "did", "will", "would", "could", "should", "may", "might", "must", "that", "this", "these", "those", "and", "but", "or", "so", "if", "in", "on", "at", "to", "for", "of", "with", "by", "from", "about", "as", "into", "also", "through", "during", "before", "after", "above", "below", "between", "out", "off", "over", "under", "again", "then", "once", "here", "there", "when", "where", "why", "how", "all", "both", "each", "few", "more", "most", "other", "some", "such", "no", "nor", "not", "only", "own", "same", "than", "too", "very", "just", "can", "its", "it", "we", "they", "you", "he", "she", "our", "their", "your", "which", "what", "who"]);
 
-  // 1. Try to find key phrases from headings/short lines
   const headingPhrases = lines
     .filter(l => l.length >= 4 && l.length <= 60 && !l.endsWith(".") && l.split(" ").length <= 6)
     .map(l => l.replace(/^[\d.\-*•]+\s*/, "").trim())
     .filter(l => l.length > 3);
 
-  // 2. Extract high-frequency meaningful single words for fallback
   const allWords = text.toLowerCase().match(/\b[a-z]{4,}\b/g) || [];
   const freq = {};
   for (const w of allWords) {
@@ -133,7 +166,6 @@ function generateMindmap(text) {
     .slice(0, 20)
     .map(([w]) => w.charAt(0).toUpperCase() + w.slice(1));
 
-  // 3. Extract 2-word collocations from sentences
   const bigrams = {};
   for (const sent of sentences) {
     const words = sent.toLowerCase().replace(/[^a-z\s]/g, "").split(/\s+/).filter(w => w.length >= 3 && !stopWords.has(w));
@@ -148,7 +180,6 @@ function generateMindmap(text) {
     .slice(0, 8)
     .map(([bg]) => bg.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" "));
 
-  // Build branches: prefer headings, then bigrams, then single words
   const branchSet = new Set();
   for (const h of headingPhrases) { if (branchSet.size < 8) branchSet.add(h); }
   for (const b of topBigrams) { if (branchSet.size < 8) branchSet.add(b); }
@@ -157,12 +188,48 @@ function generateMindmap(text) {
   let branches = Array.from(branchSet);
   if (branches.length < 2) branches = [...topWords.slice(0, 6), "Key Concept", "Main Idea"];
 
-  // Center = most dominant topic word or first heading
   const center = headingPhrases[0] || topWords[0] || "Main Topic";
-  // Remove center from branches
   const finalBranches = branches.filter(b => b.toLowerCase() !== center.toLowerCase()).slice(0, 8);
 
   return { center, branches: finalBranches };
+}
+
+// AI-powered mindmap generation with heuristic fallback
+async function generateMindmap(text) {
+  if (!text || text.trim().length < 20) {
+    return { center: "Document", branches: ["Upload a clearer file", "More text needed"] };
+  }
+
+  try {
+    const systemPrompt = `You are a mindmap generator AI.
+Given a text document, extract the main center concept (the core theme) and a list of key sub-concepts or topics (branches).
+Always return ONLY valid JSON in this exact format (no extra text, no markdown block):
+{
+  "center": "Core theme or main concept",
+  "branches": [
+    "Branch / Sub-topic 1",
+    "Branch / Sub-topic 2",
+    "Branch / Sub-topic 3",
+    "Branch / Sub-topic 4"
+  ]
+}
+Generate between 4 to 8 relevant branches.
+Ensure accuracy is 100% based on the provided text.`;
+
+    const response = await callNvidiaAI(systemPrompt, `Document text:\n${text.substring(0, 10000)}`);
+    const jsonMatch = response.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : response);
+    if (parsed && parsed.center && Array.isArray(parsed.branches)) {
+      return {
+        center: String(parsed.center).trim(),
+        branches: parsed.branches.map(b => String(b).trim()).filter(b => b.length > 0)
+      };
+    }
+  } catch (error) {
+    console.error("AI mindmap generation failed, falling back to heuristics:", error);
+  }
+
+  return generateMindmapHeuristic(text);
 }
 
 // Get all notes for user
@@ -192,11 +259,19 @@ router.post("/", auth, upload.single("file"), async (req, res) => {
     try {
       if (file.mimetype === "application/pdf") {
         const dataBuffer = fs.readFileSync(file.path);
-        const data = await pdfParse(dataBuffer);
+        const parser = new PDFParse({ data: dataBuffer });
+        const data = await parser.getText();
         extractedText = data.text;
+        await parser.destroy();
       } else if (file.mimetype.startsWith("image/")) {
-        const { data: { text } } = await tesseract.recognize(file.path, "eng");
-        extractedText = text;
+        const imageBuffer = fs.readFileSync(file.path);
+        try {
+          extractedText = await transcribeImageAI(imageBuffer, file.mimetype);
+        } catch (aiOcrError) {
+          console.warn("AI image transcription failed, falling back to local Tesseract OCR:", aiOcrError.message);
+          const { data: { text } } = await tesseract.recognize(file.path, "eng");
+          extractedText = text;
+        }
       } else {
         extractedText = "Unsupported file format. Please upload PDF or Images.";
       }
@@ -212,9 +287,11 @@ router.post("/", auth, upload.single("file"), async (req, res) => {
     extractedText = (extractedText || "").trim().replace(/\n{3,}/g, '\n\n');
     if (!extractedText) extractedText = "No readable text found in document.";
 
-    // Generate heuristics
-    const flashcards = generateFlashcards(extractedText);
-    const mindmapData = generateMindmap(extractedText);
+    // Generate Flashcards & Mindmap concurrently with AI
+    const [flashcards, mindmapData] = await Promise.all([
+      generateFlashcards(extractedText),
+      generateMindmap(extractedText)
+    ]);
 
     const note = new Note({
       userId: req.userId,

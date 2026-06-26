@@ -291,8 +291,12 @@ const Notes = () => {
             {currentNote?.mindmapData?.branches?.length > 0 ? (
               <div className="flex items-center justify-center min-h-[500px] relative">
                 {/* Center Node */}
-                <motion.div animate={{ scale: [1, 1.05, 1], boxShadow: ["0 0 0px #0ea5e9", "0 0 20px #0ea5e9", "0 0 0px #0ea5e9"] }} transition={{ duration: 3, repeat: Infinity }}
-                  className="absolute p-5 rounded-full bg-primary text-primary-foreground font-bold text-sm md:text-base z-20 shadow-xl border-4 border-background">
+                <motion.div 
+                  animate={{ scale: [1, 1.05, 1], boxShadow: ["0 0 0px #0ea5e9", "0 0 20px #0ea5e9", "0 0 0px #0ea5e9"] }} 
+                  transition={{ duration: 3, repeat: Infinity }}
+                  style={{ left: "50%", top: "50%", transform: "translate(-50%, -50%)" }}
+                  className="absolute p-5 rounded-full bg-primary text-primary-foreground font-bold text-sm md:text-base z-20 shadow-xl border-4 border-background text-center whitespace-nowrap max-w-[200px] truncate"
+                >
                   {mindmapData.center}
                 </motion.div>
                 
@@ -306,9 +310,14 @@ const Notes = () => {
                   
                   return (
                     <motion.div key={i}
-                      initial={{ opacity: 0, scale: 0, x: 0, y: 0 }}
-                      animate={{ opacity: 1, scale: 1, x, y }}
+                      initial={{ opacity: 0, scale: 0 }}
+                      animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: i * 0.1, type: "spring" }}
+                      style={{ 
+                        left: `calc(50% + ${x}px)`, 
+                        top: `calc(50% + ${y}px)`, 
+                        transform: "translate(-50%, -50%)" 
+                      }}
                       className="absolute p-3 rounded-xl bg-card border border-primary/30 text-xs md:text-sm font-semibold text-foreground hover:border-primary hover:shadow-lg hover:shadow-primary/20 transition-all cursor-pointer z-10 whitespace-nowrap"
                     >
                       {branch}
